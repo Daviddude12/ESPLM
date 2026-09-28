@@ -2,12 +2,16 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1.0"
     >
 
     <title>ESPLM</title>
+
+    <!-- Real neural-network math/training engine -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
 
     <style>
         * {
@@ -45,6 +49,7 @@
             padding: 15px;
             background: #131720;
             border-bottom: 1px solid #303644;
+            flex-wrap: wrap;
         }
 
         button {
@@ -59,6 +64,11 @@
 
         button:hover {
             opacity: 0.9;
+        }
+
+        button:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
         }
 
         button.secondary {
@@ -93,7 +103,7 @@
 
         .page {
             display: none;
-            max-width: 900px;
+            max-width: 950px;
             margin: auto;
             padding: 20px;
         }
@@ -111,7 +121,8 @@
         }
 
         textarea,
-        input {
+        input,
+        select {
             width: 100%;
             padding: 12px;
             margin-top: 8px;
@@ -124,7 +135,7 @@
         }
 
         textarea {
-            min-height: 120px;
+            min-height: 130px;
             resize: vertical;
         }
 
@@ -171,19 +182,20 @@
             color: #7faaff;
         }
 
-        .progress-container {
-            display: none;
-            margin-top: 15px;
-        }
-
         progress {
             width: 100%;
             height: 22px;
         }
 
+        .progress-container {
+            display: none;
+            margin-top: 15px;
+        }
+
         .small {
             color: #929aaa;
             font-size: 13px;
+            line-height: 1.5;
         }
 
         .model-info {
@@ -192,6 +204,42 @@
             padding: 12px;
             border-radius: 8px;
             white-space: pre-wrap;
+            overflow-x: auto;
+        }
+
+        .training-log {
+            height: 230px;
+            overflow-y: auto;
+            background: #0d1016;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+        }
+
+        .loss {
+            font-size: 25px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .warning {
+            padding: 12px;
+            border-radius: 8px;
+            background: #3a3020;
+            border: 1px solid #66522e;
+            color: #f1d99a;
+            margin-bottom: 15px;
+        }
+
+        .success {
+            padding: 12px;
+            border-radius: 8px;
+            background: #203729;
+            border: 1px solid #365d42;
+            color: #b9e5c5;
+            margin-bottom: 15px;
         }
     </style>
 </head>
@@ -204,6 +252,7 @@
 </header>
 
 <div class="connection">
+
     <button id="connectButton">
         Connect ESP32
     </button>
@@ -214,6 +263,7 @@
     >
         Disconnect
     </button>
+
 </div>
 
 <div
@@ -241,7 +291,10 @@
 
 </div>
 
-<!-- CHAT -->
+
+<!-- =========================
+     CHAT
+========================= -->
 
 <section
     id="chatPage"
@@ -267,7 +320,10 @@
 
 </section>
 
-<!-- LAB -->
+
+<!-- =========================
+     LAB
+========================= -->
 
 <section
     id="labPage"
@@ -279,7 +335,8 @@
         <h2>Lab / Training</h2>
 
         <p>
-            Add knowledge that you want ESPLM to learn.
+            Add text that you want the neural network
+            to learn from.
         </p>
 
         <label>
@@ -290,9 +347,11 @@
             id="trainingText"
             placeholder="Example:
 
+The Earth orbits the Sun.
+
 Water freezes at 0 degrees Celsius.
 
-The capital of France is Paris."
+20 percent of 50 is 10."
         ></textarea>
 
         <button id="addTrainingButton">
@@ -303,24 +362,23 @@ The capital of France is Paris."
             class="small"
             id="trainingCount"
         >
-            Training data added this session: 0
+            Training examples: 0
         </p>
 
     </div>
+
 
     <div class="card">
 
         <h2>Train Model</h2>
 
-        <p>
-            Training changes the neural-network weights.
-        </p>
+        <div class="warning">
 
-        <p class="small">
-            This requires the browser training engine.
-            It will run on your Chromebook rather than
-            requiring the Windows computer to stay on.
-        </p>
+            Training is real neural-network training.
+            Your Chromebook will perform the calculations.
+            The Windows computer does not need to stay on.
+
+        </div>
 
         <label>
             Training password
@@ -332,6 +390,30 @@ The capital of France is Paris."
             placeholder="Enter password"
         >
 
+        <label>
+            Training steps
+        </label>
+
+        <select id="trainingSteps">
+
+            <option value="20">
+                20 — quick test
+            </option>
+
+            <option value="50" selected>
+                50 — small test
+            </option>
+
+            <option value="100">
+                100 — longer test
+            </option>
+
+            <option value="250">
+                250 — longer training
+            </option>
+
+        </select>
+
         <button id="trainButton">
             Train Model
         </button>
@@ -342,7 +424,7 @@ The capital of France is Paris."
         >
 
             <p id="trainingStatus">
-                Preparing training...
+                Preparing model...
             </p>
 
             <progress
@@ -351,9 +433,31 @@ The capital of France is Paris."
                 max="100"
             ></progress>
 
+            <div
+                class="loss"
+                id="lossDisplay"
+            >
+                Loss: --
+            </div>
+
         </div>
 
     </div>
+
+
+    <div class="card">
+
+        <h2>Training Log</h2>
+
+        <div
+            class="training-log"
+            id="trainingLog"
+        >
+            Waiting for training.
+        </div>
+
+    </div>
+
 
     <div class="card">
 
@@ -363,10 +467,39 @@ The capital of France is Paris."
             class="model-info"
             id="modelInfo"
         >
-            Model not connected.
+            Browser model:
+            not initialized.
         </div>
 
     </div>
+
+
+    <div class="card">
+
+        <h2>Trained Model</h2>
+
+        <p class="small">
+            After real training completes, the trained
+            weights can be exported. The ESP32 model
+            loader will be added in the next firmware step.
+        </p>
+
+        <button
+            id="exportButton"
+            disabled
+        >
+            Export Trained Model
+        </button>
+
+        <div
+            id="exportStatus"
+            class="small"
+            style="margin-top: 12px;"
+        >
+        </div>
+
+    </div>
+
 
     <div class="card">
 
@@ -391,48 +524,49 @@ The capital of France is Paris."
 
 </section>
 
+
 <script>
+
+/* =========================================================
+   ESPLM CONFIGURATION
+========================================================= */
 
 "use strict";
 
-/*
-    ESPLM website
-
-    ESP32:
-        Web Serial
-        ↓
-        ESP32-S3
-
-    Training:
-        Browser
-        ↓
-        neural network trainer
-        ↓
-        model weights
-        ↓
-        ESP32
-*/
-
-/* -----------------------------
-   SETTINGS
------------------------------ */
-
 const TRAINING_PASSWORD = "10172011";
 
-const MODEL = {
-    vocab: 256,
-    embed: 64,
-    layers: 4,
-    heads: 8,
-    ffn: 240,
-    context: 256,
-    parameters: 267072
+const MODEL_CONFIG = {
+
+    vocabSize: 256,
+
+    embedDim: 64,
+
+    numLayers: 4,
+
+    numHeads: 8,
+
+    ffnDim: 240,
+
+    contextSize: 256
+
 };
 
 
-/* -----------------------------
-   SERIAL
------------------------------ */
+/*
+    This is the maximum number of bytes we use in one
+    training sequence during the first browser version.
+
+    The model itself supports 256-token context.
+    Starting with 64 makes the first tests much easier
+    for a Chromebook.
+*/
+
+const TRAIN_SEQUENCE_LENGTH = 64;
+
+
+/* =========================================================
+   SERIAL STATE
+========================================================= */
 
 let port = null;
 let reader = null;
@@ -447,16 +581,22 @@ let requestCounter = 0;
 const pendingRequests = new Map();
 
 
-/* -----------------------------
-   TRAINING DATA
------------------------------ */
+/* =========================================================
+   TRAINING STATE
+========================================================= */
 
 let trainingExamples = [];
 
+let model = null;
 
-/* -----------------------------
-   ELEMENTS
------------------------------ */
+let trained = false;
+
+let trainingRunning = false;
+
+
+/* =========================================================
+   DOM ELEMENTS
+========================================================= */
 
 const connectButton =
     document.getElementById(
@@ -508,6 +648,11 @@ const trainingPassword =
         "trainingPassword"
     );
 
+const trainingSteps =
+    document.getElementById(
+        "trainingSteps"
+    );
+
 const trainButton =
     document.getElementById(
         "trainButton"
@@ -528,6 +673,16 @@ const trainingProgress =
         "trainingProgress"
     );
 
+const lossDisplay =
+    document.getElementById(
+        "lossDisplay"
+    );
+
+const trainingLog =
+    document.getElementById(
+        "trainingLog"
+    );
+
 const trainingExamplesElement =
     document.getElementById(
         "trainingExamples"
@@ -543,10 +698,20 @@ const modelInfo =
         "modelInfo"
     );
 
+const exportButton =
+    document.getElementById(
+        "exportButton"
+    );
 
-/* -----------------------------
+const exportStatus =
+    document.getElementById(
+        "exportStatus"
+    );
+
+
+/* =========================================================
    TABS
------------------------------ */
+========================================================= */
 
 document
     .querySelectorAll(".tab-button")
@@ -561,9 +726,11 @@ document
                         ".tab-button"
                     )
                     .forEach(b => {
+
                         b.classList.remove(
                             "active"
                         );
+
                     });
 
                 document
@@ -571,9 +738,11 @@ document
                         ".page"
                     )
                     .forEach(page => {
+
                         page.classList.remove(
                             "active"
                         );
+
                     });
 
                 button.classList.add(
@@ -589,320 +758,1896 @@ document
                     );
             }
         );
+
     });
 
 
-/* -----------------------------
-   SERIAL CONNECT
------------------------------ */
+/* =========================================================
+   BYTE TOKENIZER
+========================================================= */
 
-async function connectESP32() {
+function textToBytes(text) {
+
+    const encoder =
+        new TextEncoder();
+
+    return Array.from(
+        encoder.encode(text)
+    );
+
+}
+
+
+/*
+    Combine all training examples into one byte stream.
+
+    We use newline separators so separate examples don't
+    accidentally become one word.
+*/
+
+function makeTrainingBytes() {
+
+    let text = "";
+
+    for (
+        const example of trainingExamples
+    ) {
+
+        text += example;
+        text += "\n\n";
+
+    }
+
+    return textToBytes(text);
+
+}
+
+
+/* =========================================================
+   TRAINING DATASET
+========================================================= */
+
+function makeTrainingBatch() {
+
+    const bytes =
+        makeTrainingBytes();
 
     if (
-        !("serial" in navigator)
+        bytes.length <
+        TRAIN_SEQUENCE_LENGTH + 1
+    ) {
+
+        throw new Error(
+            "You need more training text. " +
+            "Add enough text to make at least " +
+            (TRAIN_SEQUENCE_LENGTH + 1) +
+            " bytes."
+        );
+
+    }
+
+
+    /*
+        Pick a random starting point.
+
+        The target is simply the next byte.
+
+        Example:
+
+        input:
+        H e l l
+
+        target:
+          e l l o
+    */
+
+    const maxStart =
+        bytes.length -
+        TRAIN_SEQUENCE_LENGTH -
+        1;
+
+    const start =
+        Math.floor(
+            Math.random() *
+            (maxStart + 1)
+        );
+
+    const input =
+        bytes.slice(
+            start,
+            start + TRAIN_SEQUENCE_LENGTH
+        );
+
+    const target =
+        bytes.slice(
+            start + 1,
+            start + TRAIN_SEQUENCE_LENGTH + 1
+        );
+
+    return {
+        input,
+        target
+    };
+
+}
+
+
+/* =========================================================
+   TRANSFORMER MODEL
+========================================================= */
+
+
+/*
+    This is a custom transformer.
+
+    It is NOT a downloaded language model.
+
+    All trainable variables are created here from random
+    initialization.
+
+    Architecture:
+
+        byte -> embedding
+              -> 4 transformer blocks
+              -> final normalization
+              -> 256-way byte prediction
+*/
+
+
+class ESPLMTransformer {
+
+    constructor(config) {
+
+        this.config = config;
+
+        this.weights = [];
+
+        this.createWeights();
+
+    }
+
+
+    randomWeight(
+        shape,
+        scale
+    ) {
+
+        const variable =
+            tf.variable(
+                tf.randomNormal(
+                    shape,
+                    0,
+                    scale,
+                    "float32"
+                )
+            );
+
+        this.weights.push(
+            variable
+        );
+
+        return variable;
+
+    }
+
+
+    zeroWeight(
+        shape
+    ) {
+
+        const variable =
+            tf.variable(
+                tf.zeros(
+                    shape
+                )
+            );
+
+        this.weights.push(
+            variable
+        );
+
+        return variable;
+
+    }
+
+
+    createLayer(
+        layerIndex
+    ) {
+
+        const D =
+            this.config.embedDim;
+
+        const F =
+            this.config.ffnDim;
+
+
+        /*
+            Attention weights
+        */
+
+        const q =
+            this.randomWeight(
+                [D, D],
+                1 / Math.sqrt(D)
+            );
+
+        const k =
+            this.randomWeight(
+                [D, D],
+                1 / Math.sqrt(D)
+            );
+
+        const v =
+            this.randomWeight(
+                [D, D],
+                1 / Math.sqrt(D)
+            );
+
+        const o =
+            this.randomWeight(
+                [D, D],
+                1 / Math.sqrt(D)
+            );
+
+
+        const qb =
+            this.zeroWeight(
+                [D]
+            );
+
+        const kb =
+            this.zeroWeight(
+                [D]
+            );
+
+        const vb =
+            this.zeroWeight(
+                [D]
+            );
+
+        const ob =
+            this.zeroWeight(
+                [D]
+            );
+
+
+        /*
+            Feed-forward network
+        */
+
+        const f1 =
+            this.randomWeight(
+                [D, F],
+                1 / Math.sqrt(D)
+            );
+
+        const f2 =
+            this.randomWeight(
+                [F, D],
+                1 / Math.sqrt(F)
+            );
+
+        const f1b =
+            this.zeroWeight(
+                [F]
+            );
+
+        const f2b =
+            this.zeroWeight(
+                [D]
+            );
+
+
+        /*
+            LayerNorm parameters
+        */
+
+        const norm1Gamma =
+            this.zeroWeight(
+                [D]
+            );
+
+        const norm1Beta =
+            this.zeroWeight(
+                [D]
+            );
+
+        const norm2Gamma =
+            this.zeroWeight(
+                [D]
+            );
+
+        const norm2Beta =
+            this.zeroWeight(
+                [D]
+            );
+
+
+        /*
+            LayerNorm gamma should start at 1.
+            We created zero variables above so assign 1.
+        */
+
+        norm1Gamma.assign(
+            tf.ones([D])
+        );
+
+        norm2Gamma.assign(
+            tf.ones([D])
+        );
+
+
+        return {
+
+            q,
+            k,
+            v,
+            o,
+
+            qb,
+            kb,
+            vb,
+            ob,
+
+            f1,
+            f2,
+            f1b,
+            f2b,
+
+            norm1Gamma,
+            norm1Beta,
+
+            norm2Gamma,
+            norm2Beta
+
+        };
+
+    }
+
+
+    createWeights() {
+
+        const C =
+            this.config;
+
+        const D =
+            C.embedDim;
+
+
+        /*
+            Byte embedding
+        */
+
+        this.embedding =
+            this.randomWeight(
+                [
+                    C.vocabSize,
+                    D
+                ],
+                0.02
+            );
+
+
+        /*
+            Learned positional embeddings
+
+            These let the model know where a byte is
+            inside the context.
+        */
+
+        this.position =
+            this.randomWeight(
+                [
+                    C.contextSize,
+                    D
+                ],
+                0.02
+            );
+
+
+        this.layers = [];
+
+
+        for (
+            let i = 0;
+            i < C.numLayers;
+            i++
+        ) {
+
+            this.layers.push(
+                this.createLayer(i)
+            );
+
+        }
+
+
+        /*
+            Final LayerNorm
+        */
+
+        this.finalGamma =
+            this.zeroWeight(
+                [D]
+            );
+
+        this.finalBeta =
+            this.zeroWeight(
+                [D]
+            );
+
+        this.finalGamma.assign(
+            tf.ones([D])
+        );
+
+
+        /*
+            Output projection.
+
+            The same embedding matrix is reused as the
+            output projection to save parameters.
+
+            logits = hidden × embedding^T
+        */
+
+    }
+
+
+    layerNorm(
+        x,
+        gamma,
+        beta
+    ) {
+
+        const mean =
+            tf.mean(
+                x,
+                -1,
+                true
+            );
+
+        const variance =
+            tf.mean(
+                tf.square(
+                    x.sub(mean)
+                ),
+                -1,
+                true
+            );
+
+        const normalized =
+            x.sub(mean).div(
+                tf.sqrt(
+                    variance.add(
+                        1e-5
+                    )
+                )
+            );
+
+        return normalized
+            .mul(gamma)
+            .add(beta);
+
+    }
+
+
+    causalMask(
+        length
+    ) {
+
+        /*
+            Lower triangular matrix.
+
+            Position i can see positions <= i.
+        */
+
+        return tf.linalg.bandPart(
+            tf.ones(
+                [
+                    length,
+                    length
+                ]
+            ),
+            -1,
+            0
+        );
+
+    }
+
+
+    attention(
+        x,
+        layer
+    ) {
+
+        const length =
+            x.shape[1];
+
+        const D =
+            this.config.embedDim;
+
+
+        const q =
+            tf.add(
+                tf.matMul(
+                    x,
+                    layer.q
+                ),
+                layer.qb
+            );
+
+        const k =
+            tf.add(
+                tf.matMul(
+                    x,
+                    layer.k
+                ),
+                layer.kb
+            );
+
+        const v =
+            tf.add(
+                tf.matMul(
+                    x,
+                    layer.v
+                ),
+                layer.vb
+            );
+
+
+        /*
+            [batch, length, D]
+
+            -> [batch, heads, length, headDim]
+        */
+
+        const heads =
+            this.config.numHeads;
+
+        const headDim =
+            D / heads;
+
+
+        const splitHeads =
+            tensor => {
+
+                return tf.transpose(
+                    tf.reshape(
+                        tensor,
+                        [
+                            -1,
+                            length,
+                            heads,
+                            headDim
+                        ]
+                    ),
+                    [
+                        0,
+                        2,
+                        1,
+                        3
+                    ]
+                );
+
+            };
+
+
+        const qh =
+            splitHeads(q);
+
+        const kh =
+            splitHeads(k);
+
+        const vh =
+            splitHeads(v);
+
+
+        /*
+            Attention scores:
+
+            Q K^T / sqrt(headDim)
+        */
+
+        let scores =
+            tf.matMul(
+                qh,
+                kh,
+                false,
+                true
+            );
+
+        scores =
+            scores.div(
+                Math.sqrt(
+                    headDim
+                )
+            );
+
+
+        /*
+            Causal mask.
+        */
+
+        const mask =
+            this.causalMask(
+                length
+            );
+
+
+        const mask4 =
+            mask.reshape(
+                [
+                    1,
+                    1,
+                    length,
+                    length
+                ]
+            );
+
+
+        scores =
+            scores.add(
+                tf.sub(
+                    tf.scalar(1),
+                    mask4
+                ).mul(
+                    -1e9
+                )
+            );
+
+
+        const probabilities =
+            tf.softmax(
+                scores,
+                -1
+            );
+
+
+        let attended =
+            tf.matMul(
+                probabilities,
+                vh
+            );
+
+
+        attended =
+            tf.transpose(
+                attended,
+                [
+                    0,
+                    2,
+                    1,
+                    3
+                ]
+            );
+
+
+        attended =
+            tf.reshape(
+                attended,
+                [
+                    -1,
+                    length,
+                    D
+                ]
+            );
+
+
+        return tf.add(
+            tf.matMul(
+                attended,
+                layer.o
+            ),
+            layer.ob
+        );
+
+    }
+
+
+    forward(
+        inputTensor
+    ) {
+
+        return tf.tidy(
+            () => {
+
+                const C =
+                    this.config;
+
+                const D =
+                    C.embedDim;
+
+                const length =
+                    inputTensor.shape[1];
+
+
+                /*
+                    Gather byte embeddings.
+                */
+
+                let x =
+                    tf.gather(
+                        this.embedding,
+                        inputTensor
+                    );
+
+
+                /*
+                    Add positional embeddings.
+                */
+
+                const positions =
+                    tf.slice(
+                        this.position,
+                        [
+                            0,
+                            0
+                        ],
+                        [
+                            length,
+                            D
+                        ]
+                    );
+
+
+                x =
+                    x.add(
+                        positions.reshape(
+                            [
+                                1,
+                                length,
+                                D
+                            ]
+                        )
+                    );
+
+
+                /*
+                    Transformer blocks.
+                */
+
+                for (
+                    const layer of this.layers
+                ) {
+
+                    const normalized1 =
+                        this.layerNorm(
+                            x,
+                            layer.norm1Gamma,
+                            layer.norm1Beta
+                        );
+
+
+                    const attentionOutput =
+                        this.attention(
+                            normalized1,
+                            layer
+                        );
+
+
+                    x =
+                        x.add(
+                            attentionOutput
+                        );
+
+
+                    const normalized2 =
+                        this.layerNorm(
+                            x,
+                            layer.norm2Gamma,
+                            layer.norm2Beta
+                        );
+
+
+                    /*
+                        GELU activation
+                    */
+
+                    const ff1 =
+                        tf.add(
+                            tf.matMul(
+                                normalized2,
+                                layer.f1
+                            ),
+                            layer.f1b
+                        );
+
+
+                    const gelu =
+                        tf.mul(
+                            0.5,
+                            tf.mul(
+                                ff1,
+                                tf.add(
+                                    1,
+                                    tf.tanh(
+                                        tf.mul(
+                                            Math.sqrt(
+                                                2 / Math.PI
+                                            ),
+                                            tf.add(
+                                                ff1,
+                                                tf.mul(
+                                                    0.044715,
+                                                    tf.pow(
+                                                        ff1,
+                                                        3
+                                                    )
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        );
+
+
+                    const ff2 =
+                        tf.add(
+                            tf.matMul(
+                                gelu,
+                                layer.f2
+                            ),
+                            layer.f2b
+                        );
+
+
+                    x =
+                        x.add(
+                            ff2
+                        );
+
+                }
+
+
+                /*
+                    Final normalization.
+                */
+
+                x =
+                    this.layerNorm(
+                        x,
+                        this.finalGamma,
+                        this.finalBeta
+                    );
+
+
+                /*
+                    Weight tying:
+
+                    hidden × embedding^T
+
+                    gives:
+
+                    [batch, sequence, 256]
+                */
+
+                const logits =
+                    tf.matMul(
+                        x,
+                        this.embedding,
+                        false,
+                        true
+                    );
+
+
+                return logits;
+
+            }
+        );
+
+    }
+
+
+    dispose() {
+
+        for (
+            const weight of this.weights
+        ) {
+
+            weight.dispose();
+
+        }
+
+        this.weights = [];
+
+    }
+
+}
+
+
+/* =========================================================
+   LOSS
+========================================================= */
+
+function calculateLoss(
+    logits,
+    targets
+) {
+
+    return tf.tidy(
+        () => {
+
+            /*
+                logits:
+
+                [batch, sequence, vocab]
+
+                targets:
+
+                [batch, sequence]
+            */
+
+            const flatLogits =
+                logits.reshape(
+                    [
+                        -1,
+                        MODEL_CONFIG.vocabSize
+                    ]
+                );
+
+            const flatTargets =
+                targets.flatten();
+
+
+            const oneHot =
+                tf.oneHot(
+                    flatTargets,
+                    MODEL_CONFIG.vocabSize
+                );
+
+
+            const losses =
+                tf.losses.softmaxCrossEntropy(
+                    oneHot,
+                    flatLogits
+                );
+
+
+            return tf.mean(
+                losses
+            );
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   MODEL PARAMETER COUNT
+========================================================= */
+
+function parameterCount() {
+
+    if (!model) {
+        return 0;
+    }
+
+    let total = 0;
+
+    for (
+        const weight of model.weights
+    ) {
+
+        total +=
+            weight.size;
+
+    }
+
+    return total;
+
+}
+
+
+/* =========================================================
+   MODEL INFORMATION
+========================================================= */
+
+function updateBrowserModelInfo() {
+
+    if (!model) {
+
+        modelInfo.textContent =
+            "Browser model:\n" +
+            "not initialized.";
+
+        return;
+
+    }
+
+
+    modelInfo.textContent =
+        "Browser neural network\n\n" +
+
+        "Vocabulary: " +
+        MODEL_CONFIG.vocabSize +
+        "\n" +
+
+        "Embedding: " +
+        MODEL_CONFIG.embedDim +
+        "\n" +
+
+        "Transformer layers: " +
+        MODEL_CONFIG.numLayers +
+        "\n" +
+
+        "Attention heads: " +
+        MODEL_CONFIG.numHeads +
+        "\n" +
+
+        "FFN: " +
+        MODEL_CONFIG.ffnDim +
+        "\n" +
+
+        "Maximum context: " +
+        MODEL_CONFIG.contextSize +
+        "\n" +
+
+        "Training sequence: " +
+        TRAIN_SEQUENCE_LENGTH +
+        "\n\n" +
+
+        "Parameters: " +
+        parameterCount().toLocaleString() +
+        "\n\n" +
+
+        "Weights are randomly initialized.\n" +
+        "No pretrained model is being used.";
+
+}
+
+
+/* =========================================================
+   LOGGING
+========================================================= */
+
+function logTraining(
+    message
+) {
+
+    if (
+        trainingLog.textContent ===
+        "Waiting for training."
+    ) {
+
+        trainingLog.textContent =
+            "";
+
+    }
+
+    trainingLog.textContent +=
+        message +
+        "\n";
+
+    trainingLog.scrollTop =
+        trainingLog.scrollHeight;
+
+}
+
+
+/* =========================================================
+   CREATE MODEL
+========================================================= */
+
+function createModel() {
+
+    if (model) {
+
+        model.dispose();
+
+    }
+
+    model =
+        new ESPLMTransformer(
+            MODEL_CONFIG
+        );
+
+    trained = false;
+
+    exportButton.disabled =
+        true;
+
+    updateBrowserModelInfo();
+
+}
+
+
+/* =========================================================
+   REAL TRAINING
+========================================================= */
+
+async function startTraining() {
+
+    if (trainingRunning) {
+        return;
+    }
+
+
+    /*
+        Password gate.
+    */
+
+    if (
+        trainingPassword.value !==
+        TRAINING_PASSWORD
     ) {
 
         alert(
-            "Web Serial is not available in this browser."
+            "Incorrect training password."
         );
 
         return;
+
     }
 
-    try {
 
-        port =
-            await navigator.serial.requestPort();
+    if (
+        trainingExamples.length === 0
+    ) {
 
-        await port.open({
-            baudRate: 115200
-        });
-
-        connected = true;
-
-        connectionStatus.textContent =
-            "ESP32: Connected";
-
-        writer =
-            port.writable.getWriter();
-
-        readSerial();
-
-        await sendCommand(
-            "PING"
+        alert(
+            "Add training data first."
         );
 
-        await updateModelInfo();
-
-    }
-    catch (error) {
-
-        console.error(error);
-
-        connectionStatus.textContent =
-            "ESP32: Connection failed";
-    }
-}
-
-
-async function disconnectESP32() {
-
-    connected = false;
-
-    try {
-
-        if (reader) {
-            await reader.cancel();
-            reader.releaseLock();
-            reader = null;
-        }
-
-        if (writer) {
-            writer.releaseLock();
-            writer = null;
-        }
-
-        if (port) {
-            await port.close();
-            port = null;
-        }
-
-    }
-    catch (error) {
-
-        console.error(error);
-    }
-
-    connectionStatus.textContent =
-        "ESP32: Not connected";
-}
-
-
-/* -----------------------------
-   SERIAL READER
------------------------------ */
-
-async function readSerial() {
-
-    if (!port) {
         return;
+
     }
+
 
     try {
 
-        const decoder =
-            new TextDecoderStream();
+        /*
+            Verify enough bytes.
+        */
 
-        port.readable.pipeTo(
-            decoder.writable
+        const bytes =
+            makeTrainingBytes();
+
+        if (
+            bytes.length <
+            TRAIN_SEQUENCE_LENGTH + 1
+        ) {
+
+            alert(
+                "Add more training text first. " +
+                "The current test needs at least " +
+                (TRAIN_SEQUENCE_LENGTH + 1) +
+                " bytes."
+            );
+
+            return;
+
+        }
+
+
+        trainingRunning =
+            true;
+
+        trainButton.disabled =
+            true;
+
+        addTrainingButton.disabled =
+            true;
+
+        exportButton.disabled =
+            true;
+
+        progressContainer.style.display =
+            "block";
+
+        trainingProgress.value =
+            0;
+
+        trainingLog.textContent =
+            "";
+
+        logTraining(
+            "Starting ESPLM neural-network training..."
         );
 
-        reader =
-            decoder.readable.getReader();
+        logTraining(
+            "TensorFlow.js version: " +
+            tf.version.tfjs
+        );
 
-        while (true) {
 
-            const {
-                value,
-                done
-            } = await reader.read();
+        /*
+            Create a brand-new randomly initialized
+            transformer.
 
-            if (done) {
-                break;
+            This means every new training run starts
+            from random weights in this first version.
+        */
+
+        createModel();
+
+
+        logTraining(
+            "Created transformer."
+        );
+
+        logTraining(
+            "Parameters: " +
+            parameterCount().toLocaleString()
+        );
+
+
+        /*
+            Adam is a real gradient-based optimizer.
+        */
+
+        const optimizer =
+            tf.train.adam(
+                0.001
+            );
+
+
+        const steps =
+            Number(
+                trainingSteps.value
+            );
+
+
+        let lastLoss =
+            null;
+
+
+        for (
+            let step = 0;
+            step < steps;
+            step++
+        ) {
+
+            /*
+                Get random training sequence.
+            */
+
+            const batch =
+                makeTrainingBatch();
+
+
+            const inputTensor =
+                tf.tensor2d(
+                    [
+                        batch.input
+                    ],
+                    [
+                        1,
+                        TRAIN_SEQUENCE_LENGTH
+                    ],
+                    "int32"
+                );
+
+
+            const targetTensor =
+                tf.tensor2d(
+                    [
+                        batch.target
+                    ],
+                    [
+                        1,
+                        TRAIN_SEQUENCE_LENGTH
+                    ],
+                    "int32"
+                );
+
+
+            /*
+                REAL BACKPROPAGATION.
+
+                optimizer.minimize():
+
+                    forward pass
+                    ↓
+                    loss
+                    ↓
+                    gradients
+                    ↓
+                    weight updates
+            */
+
+            const lossTensor =
+                optimizer.minimize(
+                    () => {
+
+                        const logits =
+                            model.forward(
+                                inputTensor
+                            );
+
+                        return calculateLoss(
+                            logits,
+                            targetTensor
+                        );
+
+                    },
+                    true,
+                    model.weights
+                );
+
+
+            const loss =
+                await lossTensor.data();
+
+
+            lossTensor.dispose();
+
+            inputTensor.dispose();
+
+            targetTensor.dispose();
+
+
+            lastLoss =
+                loss[0];
+
+
+            const percent =
+                Math.round(
+                    (
+                        (step + 1) /
+                        steps
+                    ) * 100
+                );
+
+
+            trainingProgress.value =
+                percent;
+
+
+            lossDisplay.textContent =
+                "Loss: " +
+                lastLoss.toFixed(4);
+
+
+            trainingStatus.textContent =
+                "Training step " +
+                (step + 1) +
+                " / " +
+                steps;
+
+
+            if (
+                step === 0 ||
+                (step + 1) % 5 === 0 ||
+                step === steps - 1
+            ) {
+
+                logTraining(
+                    "Step " +
+                    (step + 1) +
+                    "/" +
+                    steps +
+                    "    Loss: " +
+                    lastLoss.toFixed(4)
+                );
+
             }
 
-            if (value) {
 
-                serialBuffer += value;
+            /*
+                Give the browser UI time to update.
+            */
 
-                let lines =
-                    serialBuffer.split("\n");
+            await tf.nextFrame();
 
-                serialBuffer =
-                    lines.pop();
-
-                for (
-                    const line of lines
-                ) {
-
-                    handleSerialLine(
-                        line.trim()
-                    );
-                }
-            }
         }
+
+
+        trained = true;
+
+        exportButton.disabled =
+            false;
+
+
+        trainingStatus.textContent =
+            "Training complete.";
+
+        logTraining(
+            ""
+        );
+
+        logTraining(
+            "TRAINING COMPLETE"
+        );
+
+        logTraining(
+            "Final loss: " +
+            lastLoss.toFixed(4)
+        );
+
+        logTraining(
+            "The neural-network weights were updated."
+        );
+
+        exportStatus.textContent =
+            "A trained model is currently held in browser memory.";
 
     }
     catch (error) {
 
         console.error(
-            "Serial read error:",
             error
         );
-    }
-}
 
-
-/* -----------------------------
-   SERIAL WRITER
------------------------------ */
-
-async function sendRaw(
-    text
-) {
-
-    if (!writer) {
-        throw new Error(
-            "ESP32 is not connected."
+        logTraining(
+            "TRAINING ERROR:"
         );
+
+        logTraining(
+            error.message
+        );
+
+        alert(
+            "Training failed:\n\n" +
+            error.message
+        );
+
+    }
+    finally {
+
+        trainingRunning =
+            false;
+
+        trainButton.disabled =
+            false;
+
+        addTrainingButton.disabled =
+            false;
+
     }
 
-    const encoder =
-        new TextEncoder();
-
-    await writer.write(
-        encoder.encode(
-            text + "\n"
-        )
-    );
 }
 
 
-/* -----------------------------
-   REQUESTS
------------------------------ */
-
-async function sendCommand(
-    command
-) {
-
-    await sendRaw(command);
-}
+/* =========================================================
+   EXPORT TRAINED MODEL
+========================================================= */
 
 
-function handleSerialLine(
-    line
-) {
+/*
+    Binary model format:
 
-    console.log(
-        "ESP32:",
-        line
-    );
+    Header:
+
+        4 bytes  magic = "ESLM"
+        4 bytes  version
+        4 bytes  vocab
+        4 bytes  embed
+        4 bytes  layers
+        4 bytes  heads
+        4 bytes  ffn
+        4 bytes  context
+        4 bytes  parameter count
+
+    Then:
+
+        float32 weights
+
+    in the exact order stored in model.weights.
+
+    The ESP32 loader will be built to read this exact format.
+*/
+
+async function exportTrainedModel() {
 
     if (
-        line.startsWith(
-            "CHAT_RESULT|"
-        )
+        !model ||
+        !trained
     ) {
 
-        const parts =
-            line.split("|");
+        alert(
+            "Train the model first."
+        );
 
-        const requestId =
-            parts[1];
+        return;
 
-        const response =
-            parts
-                .slice(2)
-                .join("|")
-                .replace(
-                    /\\n/g,
-                    "\n"
-                )
-                .replace(
-                    /\\r/g,
-                    "\r"
-                )
-                .replace(
-                    /\\p/g,
-                    "|"
-                )
-                .replace(
-                    /\\\\/g,
-                    "\\"
-                );
+    }
 
-        const pending =
-            pendingRequests.get(
-                requestId
+
+    try {
+
+        exportStatus.textContent =
+            "Preparing model export...";
+
+
+        const arrays = [];
+
+
+        for (
+            const weight of model.weights
+        ) {
+
+            const values =
+                await weight.data();
+
+            arrays.push(
+                new Float32Array(
+                    values
+                )
             );
 
-        if (pending) {
-
-            pending(
-                response
-            );
-
-            pendingRequests.delete(
-                requestId
-            );
         }
 
-        return;
-    }
 
-    if (
-        line === "PONG"
-    ) {
+        let totalFloats = 0;
 
-        console.log(
-            "ESP32 connection test passed."
+        for (
+            const array of arrays
+        ) {
+
+            totalFloats +=
+                array.length;
+
+        }
+
+
+        const headerBytes =
+            9 * 4;
+
+
+        const totalBytes =
+            headerBytes +
+            totalFloats * 4;
+
+
+        const buffer =
+            new ArrayBuffer(
+                totalBytes
+            );
+
+
+        const view =
+            new DataView(
+                buffer
+            );
+
+
+        let offset = 0;
+
+
+        /*
+            ESLM
+        */
+
+        view.setUint32(
+            offset,
+            0x4D4C5345,
+            true
         );
 
-        return;
-    }
+        offset += 4;
 
-    if (
-        line.startsWith(
-            "INFO|"
-        )
-    ) {
 
-        modelInfo.textContent =
-            line;
-
-        return;
-    }
-
-    if (
-        line.startsWith(
-            "MODEL_STATUS|"
-        )
-    ) {
-
-        modelInfo.textContent +=
-            "\n" + line;
-
-        return;
-    }
-
-    if (
-        line === "TEACH_OK"
-    ) {
-
-        console.log(
-            "Training example stored on ESP32."
+        view.setUint32(
+            offset,
+            1,
+            true
         );
 
-        return;
-    }
+        offset += 4;
 
-    if (
-        line === "MEMORY_CLEARED"
-    ) {
 
-        console.log(
-            "ESP32 Lab memory cleared."
+        view.setUint32(
+            offset,
+            MODEL_CONFIG.vocabSize,
+            true
         );
 
-        return;
+        offset += 4;
+
+
+        view.setUint32(
+            offset,
+            MODEL_CONFIG.embedDim,
+            true
+        );
+
+        offset += 4;
+
+
+        view.setUint32(
+            offset,
+            MODEL_CONFIG.numLayers,
+            true
+        );
+
+        offset += 4;
+
+
+        view.setUint32(
+            offset,
+            MODEL_CONFIG.numHeads,
+            true
+        );
+
+        offset += 4;
+
+
+        view.setUint32(
+            offset,
+            MODEL_CONFIG.ffnDim,
+            true
+        );
+
+        offset += 4;
+
+
+        view.setUint32(
+            offset,
+            MODEL_CONFIG.contextSize,
+            true
+        );
+
+        offset += 4;
+
+
+        view.setUint32(
+            offset,
+            totalFloats,
+            true
+        );
+
+        offset += 4;
+
+
+        const floatView =
+            new Float32Array(
+                buffer,
+                offset
+            );
+
+
+        let floatOffset = 0;
+
+
+        for (
+            const array of arrays
+        ) {
+
+            floatView.set(
+                array,
+                floatOffset
+            );
+
+            floatOffset +=
+                array.length;
+
+        }
+
+
+        const blob =
+            new Blob(
+                [
+                    buffer
+                ],
+                {
+                    type:
+                        "application/octet-stream"
+                }
+            );
+
+
+        const url =
+            URL.createObjectURL(
+                blob
+            );
+
+
+        const link =
+            document.createElement(
+                "a"
+            );
+
+        link.href =
+            url;
+
+        link.download =
+            "esplm-trained.eslm";
+
+        link.click();
+
+
+        URL.revokeObjectURL(
+            url
+        );
+
+
+        exportStatus.textContent =
+            "Export complete: " +
+            totalBytes.toLocaleString() +
+            " bytes.";
+
     }
+    catch (error) {
+
+        console.error(
+            error
+        );
+
+        exportStatus.textContent =
+            "Export failed: " +
+            error.message;
+
+    }
+
 }
 
 
-/* -----------------------------
+/* =========================================================
+   TRAINING DATA DISPLAY
+========================================================= */
+
+function addTrainingData() {
+
+    const text =
+        trainingText.value.trim();
+
+
+    if (!text) {
+
+        alert(
+            "Enter some training text first."
+        );
+
+        return;
+
+    }
+
+
+    trainingExamples.push(
+        text
+    );
+
+
+    trainingText.value =
+        "";
+
+
+    trained = false;
+
+    exportButton.disabled =
+        true;
+
+
+    updateTrainingDisplay();
+
+}
+
+
+function updateTrainingDisplay() {
+
+    trainingCount.textContent =
+        "Training examples: " +
+        trainingExamples.length;
+
+
+    trainingExamplesElement.innerHTML =
+        "";
+
+
+    if (
+        trainingExamples.length === 0
+    ) {
+
+        trainingExamplesElement.textContent =
+            "No training examples yet.";
+
+        return;
+
+    }
+
+
+    trainingExamples.forEach(
+        (
+            example,
+            index
+        ) => {
+
+            const div =
+                document.createElement(
+                    "div"
+                );
+
+            div.className =
+                "example";
+
+
+            const title =
+                document.createElement(
+                    "strong"
+                );
+
+            title.textContent =
+                "Example " +
+                (index + 1);
+
+
+            const body =
+                document.createElement(
+                    "div"
+                );
+
+            body.textContent =
+                example;
+
+
+            div.appendChild(
+                title
+            );
+
+            div.appendChild(
+                document.createElement(
+                    "br"
+                )
+            );
+
+            div.appendChild(
+                body
+            );
+
+
+            trainingExamplesElement
+                .appendChild(
+                    div
+                );
+
+        }
+    );
+
+}
+
+
+/* =========================================================
+   CLEAR LAB
+========================================================= */
+
+function clearLab() {
+
+    if (
+        trainingRunning
+    ) {
+
+        return;
+
+    }
+
+
+    if (
+        !confirm(
+            "Clear all Lab data?"
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    trainingExamples = [];
+
+    trained = false;
+
+    exportButton.disabled =
+        true;
+
+    updateTrainingDisplay();
+
+
+    if (connected) {
+
+        sendCommand(
+            "MEMORY_CLEAR"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
    CHAT
------------------------------ */
+========================================================= */
 
 function addChatMessage(
     text,
@@ -914,6 +2659,7 @@ function addChatMessage(
             "div"
         );
 
+
     message.className =
         "message " +
         (
@@ -922,15 +2668,19 @@ function addChatMessage(
                 : "ai-message"
         );
 
+
     message.textContent =
         text;
+
 
     chatLog.appendChild(
         message
     );
 
+
     chatLog.scrollTop =
         chatLog.scrollHeight;
+
 }
 
 
@@ -939,16 +2689,23 @@ async function chat() {
     const prompt =
         chatInput.value.trim();
 
+
     if (!prompt) {
+
         return;
+
     }
+
 
     addChatMessage(
         prompt,
         "user"
     );
 
-    chatInput.value = "";
+
+    chatInput.value =
+        "";
+
 
     if (!connected) {
 
@@ -958,12 +2715,15 @@ async function chat() {
         );
 
         return;
+
     }
+
 
     const requestId =
         String(
             ++requestCounter
         );
+
 
     const responsePromise =
         new Promise(
@@ -973,8 +2733,10 @@ async function chat() {
                     requestId,
                     resolve
                 );
+
             }
         );
+
 
     await sendRaw(
         "CHAT|" +
@@ -985,15 +2747,22 @@ async function chat() {
         )
     );
 
+
     const response =
         await responsePromise;
+
 
     addChatMessage(
         response,
         "ai"
     );
+
 }
 
+
+/* =========================================================
+   PROTOCOL ESCAPING
+========================================================= */
 
 function escapeProtocol(
     text
@@ -1016,184 +2785,385 @@ function escapeProtocol(
             /\r/g,
             "\\r"
         );
+
 }
 
 
-/* -----------------------------
-   TRAINING DATA
------------------------------ */
+/* =========================================================
+   SERIAL CONNECT
+========================================================= */
 
-function addTrainingData() {
+async function connectESP32() {
 
-    const text =
-        trainingText.value.trim();
-
-    if (!text) {
+    if (
+        !("serial" in navigator)
+    ) {
 
         alert(
-            "Enter some training text first."
+            "Web Serial is not available in this browser."
         );
 
         return;
+
     }
 
-    trainingExamples.push(
-        text
-    );
 
-    trainingText.value = "";
+    try {
 
-    updateTrainingDisplay();
+        port =
+            await navigator.serial.requestPort();
+
+
+        await port.open({
+            baudRate: 115200
+        });
+
+
+        connected =
+            true;
+
+
+        connectionStatus.textContent =
+            "ESP32: Connected";
+
+
+        writer =
+            port.writable.getWriter();
+
+
+        readSerial();
+
+
+        await sendCommand(
+            "PING"
+        );
+
+
+        await updateModelInfo();
+
+    }
+    catch (error) {
+
+        console.error(
+            error
+        );
+
+
+        connectionStatus.textContent =
+            "ESP32: Connection failed";
+
+    }
+
 }
 
 
-function updateTrainingDisplay() {
+/* =========================================================
+   SERIAL DISCONNECT
+========================================================= */
 
-    trainingCount.textContent =
-        "Training data added this session: " +
-        trainingExamples.length;
+async function disconnectESP32() {
 
-    trainingExamplesElement.innerHTML =
-        "";
+    connected =
+        false;
 
-    if (
-        trainingExamples.length === 0
-    ) {
 
-        trainingExamplesElement.textContent =
-            "No training examples yet.";
+    try {
 
-        return;
-    }
+        if (reader) {
 
-    trainingExamples.forEach(
-        (example, index) => {
+            await reader.cancel();
 
-            const div =
-                document.createElement(
-                    "div"
-                );
+            reader.releaseLock();
 
-            div.className =
-                "example";
+            reader = null;
 
-            const title =
-                document.createElement(
-                    "strong"
-                );
-
-            title.textContent =
-                "Example " +
-                (index + 1);
-
-            const body =
-                document.createElement(
-                    "div"
-                );
-
-            body.textContent =
-                example;
-
-            div.appendChild(
-                title
-            );
-
-            div.appendChild(
-                document.createElement(
-                    "br"
-                )
-            );
-
-            div.appendChild(
-                body
-            );
-
-            trainingExamplesElement
-                .appendChild(div);
         }
-    );
+
+
+        if (writer) {
+
+            writer.releaseLock();
+
+            writer = null;
+
+        }
+
+
+        if (port) {
+
+            await port.close();
+
+            port = null;
+
+        }
+
+    }
+    catch (error) {
+
+        console.error(
+            error
+        );
+
+    }
+
+
+    connectionStatus.textContent =
+        "ESP32: Not connected";
+
 }
 
 
-/* -----------------------------
-   REAL TRAINING ENGINE HOOK
------------------------------ */
+/* =========================================================
+   SERIAL READER
+========================================================= */
 
-/*
-    IMPORTANT:
+async function readSerial() {
 
-    This function is intentionally NOT
-    pretending to train the model.
-
-    The actual browser neural-network
-    trainer will be installed here.
-
-    It will eventually perform:
-
-        text
-          ↓
-        byte tokens
-          ↓
-        transformer
-          ↓
-        prediction
-          ↓
-        loss
-          ↓
-        backpropagation
-          ↓
-        weight updates
-          ↓
-        trained weights
-          ↓
-        model export
-          ↓
-        ESP32
-
-    The Windows computer will NOT need
-    to stay on for this.
-*/
-
-async function startTraining() {
-
-    if (
-        trainingPassword.value !==
-        TRAINING_PASSWORD
-    ) {
-
-        alert(
-            "Incorrect training password."
-        );
+    if (!port) {
 
         return;
+
     }
 
-    if (
-        trainingExamples.length === 0
-    ) {
 
-        alert(
-            "Add training data first."
+    try {
+
+        const decoder =
+            new TextDecoderStream();
+
+
+        port.readable.pipeTo(
+            decoder.writable
         );
 
-        return;
+
+        reader =
+            decoder.readable.getReader();
+
+
+        while (true) {
+
+            const {
+                value,
+                done
+            } =
+                await reader.read();
+
+
+            if (done) {
+
+                break;
+
+            }
+
+
+            if (value) {
+
+                serialBuffer +=
+                    value;
+
+
+                const lines =
+                    serialBuffer.split(
+                        "\n"
+                    );
+
+
+                serialBuffer =
+                    lines.pop();
+
+
+                for (
+                    const line of lines
+                ) {
+
+                    handleSerialLine(
+                        line.trim()
+                    );
+
+                }
+
+            }
+
+        }
+
+    }
+    catch (error) {
+
+        console.error(
+            "Serial read error:",
+            error
+        );
+
     }
 
-    /*
-        We are deliberately stopping here
-        until the actual neural trainer is
-        installed.
-    */
-
-    alert(
-        "The real browser neural-network trainer has not been installed yet. No fake training will be performed."
-    );
 }
 
 
-/* -----------------------------
-   MODEL INFO
------------------------------ */
+/* =========================================================
+   SERIAL WRITER
+========================================================= */
+
+async function sendRaw(
+    text
+) {
+
+    if (!writer) {
+
+        throw new Error(
+            "ESP32 is not connected."
+        );
+
+    }
+
+
+    const encoder =
+        new TextEncoder();
+
+
+    await writer.write(
+        encoder.encode(
+            text + "\n"
+        )
+    );
+
+}
+
+
+async function sendCommand(
+    command
+) {
+
+    await sendRaw(
+        command
+    );
+
+}
+
+
+/* =========================================================
+   SERIAL RESPONSE HANDLER
+========================================================= */
+
+function handleSerialLine(
+    line
+) {
+
+    console.log(
+        "ESP32:",
+        line
+    );
+
+
+    if (
+        line.startsWith(
+            "CHAT_RESULT|"
+        )
+    ) {
+
+        const parts =
+            line.split("|");
+
+
+        const requestId =
+            parts[1];
+
+
+        const response =
+            parts
+                .slice(2)
+                .join("|")
+                .replace(
+                    /\\n/g,
+                    "\n"
+                )
+                .replace(
+                    /\\r/g,
+                    "\r"
+                )
+                .replace(
+                    /\\p/g,
+                    "|"
+                )
+                .replace(
+                    /\\\\/g,
+                    "\\"
+                );
+
+
+        const pending =
+            pendingRequests.get(
+                requestId
+            );
+
+
+        if (pending) {
+
+            pending(
+                response
+            );
+
+
+            pendingRequests.delete(
+                requestId
+            );
+
+        }
+
+
+        return;
+
+    }
+
+
+    if (
+        line === "PONG"
+    ) {
+
+        console.log(
+            "ESP32 connection test passed."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        line.startsWith(
+            "INFO|"
+        )
+    ) {
+
+        modelInfo.textContent =
+            "ESP32:\n" +
+            line;
+
+        return;
+
+    }
+
+
+    if (
+        line.startsWith(
+            "MODEL_STATUS|"
+        )
+    ) {
+
+        modelInfo.textContent +=
+            "\n" +
+            line;
+
+        return;
+
+    }
+
+}
+
+
+/* =========================================================
+   ESP32 MODEL INFO
+========================================================= */
 
 async function updateModelInfo() {
 
@@ -1203,81 +3173,71 @@ async function updateModelInfo() {
             "ESP32 not connected.";
 
         return;
+
     }
 
+
     modelInfo.textContent =
-        "Checking model...";
+        "Checking ESP32 model...";
+
 
     await sendCommand(
         "INFO"
     );
 
+
     await sendCommand(
         "MODEL_STATUS"
     );
+
 }
 
 
-/* -----------------------------
-   CLEAR LAB
------------------------------ */
-
-function clearLab() {
-
-    if (
-        !confirm(
-            "Clear all Lab data from this browser?"
-        )
-    ) {
-        return;
-    }
-
-    trainingExamples =
-        [];
-
-    updateTrainingDisplay();
-
-    if (connected) {
-        sendCommand(
-            "MEMORY_CLEAR"
-        );
-    }
-}
-
-
-/* -----------------------------
+/* =========================================================
    EVENTS
------------------------------ */
+========================================================= */
 
 connectButton.addEventListener(
     "click",
     connectESP32
 );
 
+
 disconnectButton.addEventListener(
     "click",
     disconnectESP32
 );
+
 
 sendButton.addEventListener(
     "click",
     chat
 );
 
+
 addTrainingButton.addEventListener(
     "click",
     addTrainingData
 );
+
 
 trainButton.addEventListener(
     "click",
     startTraining
 );
 
+
+exportButton.addEventListener(
+    "click",
+    exportTrainedModel
+);
+
+
 clearLabButton.addEventListener(
     "click",
     clearLab
 );
+
 
 chatInput.addEventListener(
     "keydown",
@@ -1291,16 +3251,19 @@ chatInput.addEventListener(
             event.preventDefault();
 
             chat();
+
         }
+
     }
 );
 
 
-/* -----------------------------
-   INITIAL STATE
------------------------------ */
+/* =========================================================
+   INITIALIZATION
+========================================================= */
 
 updateTrainingDisplay();
+
 
 if (
     !("serial" in navigator)
@@ -1308,7 +3271,43 @@ if (
 
     connectionStatus.textContent =
         "Web Serial is not available in this browser.";
+
 }
+
+
+/*
+    Create the random model only when TensorFlow.js
+    has loaded.
+*/
+
+window.addEventListener(
+    "load",
+    () => {
+
+        try {
+
+            createModel();
+
+            trainingLog.textContent =
+                "ESPLM browser trainer ready.\n" +
+                "Weights were initialized randomly.\n" +
+                "No pretrained model is loaded.";
+
+        }
+        catch (error) {
+
+            console.error(
+                error
+            );
+
+            trainingLog.textContent =
+                "Could not initialize trainer:\n" +
+                error.message;
+
+        }
+
+    }
+);
 
 </script>
 
