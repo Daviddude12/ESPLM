@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>ESPLM</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #10131a;
+            color: #f4f4f4;
+        }
+
+        header {
+            padding: 22px;
+            text-align: center;
+            background: #171b24;
+            border-bottom: 1px solid #303644;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 30px;
+        }
+
+        header p {
+            margin: 8px 0 0;
+            color: #aeb6c7;
+        }
+
+        .connection {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            padding: 15px;
+            background: #131720;
+            border-bottom: 1px solid #303644;
+        }
+
+        button {
+            border: none;
+            border-radius: 8px;
+            padding: 11px 16px;
+            font-size: 15px;
+            cursor: pointer;
+            background: #3478f6;
+            color: white;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button.secondary {
+            background: #303746;
+        }
+
+        button.danger {
+            background: #b93636;
+        }
+
+        .status {
+            padding: 10px;
+            text-align: center;
+            color: #aeb6c7;
+            font-size: 14px;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            padding: 15px;
+        }
+
+        .tab-button {
+            background: #252b38;
+        }
+
+        .tab-button.active {
+            background: #3478f6;
+        }
+
+        .page {
+            display: none;
+            max-width: 900px;
+            margin: auto;
+            padding: 20px;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .card {
+            background: #171b24;
+            border: 1px solid #303644;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 18px;
+        }
+
+        textarea,
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-top: 8px;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            border: 1px solid #3a4252;
+            background: #0f1218;
+            color: white;
+            font-size: 15px;
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+            color: #cbd2df;
+        }
+
+        #chatLog {
+            min-height: 350px;
+            max-height: 500px;
+            overflow-y: auto;
+            padding: 10px;
+            background: #0d1016;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .message {
+            margin: 10px 0;
+            padding: 12px;
+            border-radius: 9px;
+            white-space: pre-wrap;
+        }
+
+        .user-message {
+            background: #263c63;
+        }
+
+        .ai-message {
+            background: #252b35;
+        }
+
+        .example {
+            border: 1px solid #303644;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 10px;
+            background: #12161e;
+        }
+
+        .example strong {
+            color: #7faaff;
+        }
+
+        .progress-container {
+            display: none;
+            margin-top: 15px;
+        }
+
+        progress {
+            width: 100%;
+            height: 22px;
+        }
+
+        .small {
+            color: #929aaa;
+            font-size: 13px;
+        }
+
+        .model-info {
+            font-family: monospace;
+            background: #0d1016;
+            padding: 12px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>ESPLM</h1>
+    <p>My Tiny Language Model</p>
+</header>
+
+<div class="connection">
+    <button id="connectButton">
+        Connect ESP32
+    </button>
+
+    <button
+        class="secondary"
+        id="disconnectButton"
+    >
+        Disconnect
+    </button>
+</div>
+
+<div
+    class="status"
+    id="connectionStatus"
+>
+    ESP32: Not connected
+</div>
+
+<div class="tabs">
+
+    <button
+        class="tab-button active"
+        data-page="chatPage"
+    >
+        Chat
+    </button>
+
+    <button
+        class="tab-button"
+        data-page="labPage"
+    >
+        Lab / Training
+    </button>
+
+</div>
+
+<!-- CHAT -->
+
+<section
+    id="chatPage"
+    class="page active"
+>
+
+    <div class="card">
+
+        <h2>Chat with ESPLM</h2>
+
+        <div id="chatLog"></div>
+
+        <textarea
+            id="chatInput"
+            placeholder="Talk to your model..."
+        ></textarea>
+
+        <button id="sendButton">
+            Send
+        </button>
+
+    </div>
+
+</section>
+
+<!-- LAB -->
+
+<section
+    id="labPage"
+    class="page"
+>
+
+    <div class="card">
+
+        <h2>Lab / Training</h2>
+
+        <p>
+            Add knowledge that you want ESPLM to learn.
+        </p>
+
+        <label>
+            Training text
+        </label>
+
+        <textarea
+            id="trainingText"
+            placeholder="Example:
+
+Water freezes at 0 degrees Celsius.
+
+The capital of France is Paris."
+        ></textarea>
+
+        <button id="addTrainingButton">
+            Add Training Data
+        </button>
+
+        <p
+            class="small"
+            id="trainingCount"
+        >
+            Training data added this session: 0
+        </p>
+
+    </div>
+
+    <div class="card">
+
+        <h2>Train Model</h2>
+
+        <p>
+            Training changes the neural-network weights.
+        </p>
+
+        <p class="small">
+            This requires the browser training engine.
+            It will run on your Chromebook rather than
+            requiring the Windows computer to stay on.
+        </p>
+
+        <label>
+            Training password
+        </label>
+
+        <input
+            id="trainingPassword"
+            type="password"
+            placeholder="Enter password"
+        >
+
+        <button id="trainButton">
+            Train Model
+        </button>
+
+        <div
+            class="progress-container"
+            id="progressContainer"
+        >
+
+            <p id="trainingStatus">
+                Preparing training...
+            </p>
+
+            <progress
+                id="trainingProgress"
+                value="0"
+                max="100"
+            ></progress>
+
+        </div>
+
+    </div>
+
+    <div class="card">
+
+        <h2>Model Information</h2>
+
+        <div
+            class="model-info"
+            id="modelInfo"
+        >
+            Model not connected.
+        </div>
+
+    </div>
+
+    <div class="card">
+
+        <h2>Lab Data</h2>
+
+        <div
+            id="trainingExamples"
+        >
+            No training examples yet.
+        </div>
+
+        <br>
+
+        <button
+            class="danger"
+            id="clearLabButton"
+        >
+            Clear Lab Data
+        </button>
+
+    </div>
+
+</section>
+
+<script>
+
+"use strict";
+
+/*
+    ESPLM website
+
+    ESP32:
+        Web Serial
+        ↓
+        ESP32-S3
+
+    Training:
+        Browser
+        ↓
+        neural network trainer
+        ↓
+        model weights
+        ↓
+        ESP32
+*/
+
+/* -----------------------------
+   SETTINGS
+----------------------------- */
+
+const TRAINING_PASSWORD = "10172011";
+
+const MODEL = {
+    vocab: 256,
+    embed: 64,
+    layers: 4,
+    heads: 8,
+    ffn: 240,
+    context: 256,
+    parameters: 267072
+};
+
+
+/* -----------------------------
+   SERIAL
+----------------------------- */
+
+let port = null;
+let reader = null;
+let writer = null;
+
+let serialBuffer = "";
+
+let connected = false;
+
+let requestCounter = 0;
+
+const pendingRequests = new Map();
+
+
+/* -----------------------------
+   TRAINING DATA
+----------------------------- */
+
+let trainingExamples = [];
+
+
+/* -----------------------------
+   ELEMENTS
+----------------------------- */
+
+const connectButton =
+    document.getElementById(
+        "connectButton"
+    );
+
+const disconnectButton =
+    document.getElementById(
+        "disconnectButton"
+    );
+
+const connectionStatus =
+    document.getElementById(
+        "connectionStatus"
+    );
+
+const chatLog =
+    document.getElementById(
+        "chatLog"
+    );
+
+const chatInput =
+    document.getElementById(
+        "chatInput"
+    );
+
+const sendButton =
+    document.getElementById(
+        "sendButton"
+    );
+
+const trainingText =
+    document.getElementById(
+        "trainingText"
+    );
+
+const addTrainingButton =
+    document.getElementById(
+        "addTrainingButton"
+    );
+
+const trainingCount =
+    document.getElementById(
+        "trainingCount"
+    );
+
+const trainingPassword =
+    document.getElementById(
+        "trainingPassword"
+    );
+
+const trainButton =
+    document.getElementById(
+        "trainButton"
+    );
+
+const progressContainer =
+    document.getElementById(
+        "progressContainer"
+    );
+
+const trainingStatus =
+    document.getElementById(
+        "trainingStatus"
+    );
+
+const trainingProgress =
+    document.getElementById(
+        "trainingProgress"
+    );
+
+const trainingExamplesElement =
+    document.getElementById(
+        "trainingExamples"
+    );
+
+const clearLabButton =
+    document.getElementById(
+        "clearLabButton"
+    );
+
+const modelInfo =
+    document.getElementById(
+        "modelInfo"
+    );
+
+
+/* -----------------------------
+   TABS
+----------------------------- */
+
+document
+    .querySelectorAll(".tab-button")
+    .forEach(button => {
+
+        button.addEventListener(
+            "click",
+            () => {
+
+                document
+                    .querySelectorAll(
+                        ".tab-button"
+                    )
+                    .forEach(b => {
+                        b.classList.remove(
+                            "active"
+                        );
+                    });
+
+                document
+                    .querySelectorAll(
+                        ".page"
+                    )
+                    .forEach(page => {
+                        page.classList.remove(
+                            "active"
+                        );
+                    });
+
+                button.classList.add(
+                    "active"
+                );
+
+                document
+                    .getElementById(
+                        button.dataset.page
+                    )
+                    .classList.add(
+                        "active"
+                    );
+            }
+        );
+    });
+
+
+/* -----------------------------
+   SERIAL CONNECT
+----------------------------- */
+
+async function connectESP32() {
+
+    if (
+        !("serial" in navigator)
+    ) {
+
+        alert(
+            "Web Serial is not available in this browser."
+        );
+
+        return;
+    }
+
+    try {
+
+        port =
+            await navigator.serial.requestPort();
+
+        await port.open({
+            baudRate: 115200
+        });
+
+        connected = true;
+
+        connectionStatus.textContent =
+            "ESP32: Connected";
+
+        writer =
+            port.writable.getWriter();
+
+        readSerial();
+
+        await sendCommand(
+            "PING"
+        );
+
+        await updateModelInfo();
+
+    }
+    catch (error) {
+
+        console.error(error);
+
+        connectionStatus.textContent =
+            "ESP32: Connection failed";
+    }
+}
+
+
+async function disconnectESP32() {
+
+    connected = false;
+
+    try {
+
+        if (reader) {
+            await reader.cancel();
+            reader.releaseLock();
+            reader = null;
+        }
+
+        if (writer) {
+            writer.releaseLock();
+            writer = null;
+        }
+
+        if (port) {
+            await port.close();
+            port = null;
+        }
+
+    }
+    catch (error) {
+
+        console.error(error);
+    }
+
+    connectionStatus.textContent =
+        "ESP32: Not connected";
+}
+
+
+/* -----------------------------
+   SERIAL READER
+----------------------------- */
+
+async function readSerial() {
+
+    if (!port) {
+        return;
+    }
+
+    try {
+
+        const decoder =
+            new TextDecoderStream();
+
+        port.readable.pipeTo(
+            decoder.writable
+        );
+
+        reader =
+            decoder.readable.getReader();
+
+        while (true) {
+
+            const {
+                value,
+                done
+            } = await reader.read();
+
+            if (done) {
+                break;
+            }
+
+            if (value) {
+
+                serialBuffer += value;
+
+                let lines =
+                    serialBuffer.split("\n");
+
+                serialBuffer =
+                    lines.pop();
+
+                for (
+                    const line of lines
+                ) {
+
+                    handleSerialLine(
+                        line.trim()
+                    );
+                }
+            }
+        }
+
+    }
+    catch (error) {
+
+        console.error(
+            "Serial read error:",
+            error
+        );
+    }
+}
+
+
+/* -----------------------------
+   SERIAL WRITER
+----------------------------- */
+
+async function sendRaw(
+    text
+) {
+
+    if (!writer) {
+        throw new Error(
+            "ESP32 is not connected."
+        );
+    }
+
+    const encoder =
+        new TextEncoder();
+
+    await writer.write(
+        encoder.encode(
+            text + "\n"
+        )
+    );
+}
+
+
+/* -----------------------------
+   REQUESTS
+----------------------------- */
+
+async function sendCommand(
+    command
+) {
+
+    await sendRaw(command);
+}
+
+
+function handleSerialLine(
+    line
+) {
+
+    console.log(
+        "ESP32:",
+        line
+    );
+
+    if (
+        line.startsWith(
+            "CHAT_RESULT|"
+        )
+    ) {
+
+        const parts =
+            line.split("|");
+
+        const requestId =
+            parts[1];
+
+        const response =
+            parts
+                .slice(2)
+                .join("|")
+                .replace(
+                    /\\n/g,
+                    "\n"
+                )
+                .replace(
+                    /\\r/g,
+                    "\r"
+                )
+                .replace(
+                    /\\p/g,
+                    "|"
+                )
+                .replace(
+                    /\\\\/g,
+                    "\\"
+                );
+
+        const pending =
+            pendingRequests.get(
+                requestId
+            );
+
+        if (pending) {
+
+            pending(
+                response
+            );
+
+            pendingRequests.delete(
+                requestId
+            );
+        }
+
+        return;
+    }
+
+    if (
+        line === "PONG"
+    ) {
+
+        console.log(
+            "ESP32 connection test passed."
+        );
+
+        return;
+    }
+
+    if (
+        line.startsWith(
+            "INFO|"
+        )
+    ) {
+
+        modelInfo.textContent =
+            line;
+
+        return;
+    }
+
+    if (
+        line.startsWith(
+            "MODEL_STATUS|"
+        )
+    ) {
+
+        modelInfo.textContent +=
+            "\n" + line;
+
+        return;
+    }
+
+    if (
+        line === "TEACH_OK"
+    ) {
+
+        console.log(
+            "Training example stored on ESP32."
+        );
+
+        return;
+    }
+
+    if (
+        line === "MEMORY_CLEARED"
+    ) {
+
+        console.log(
+            "ESP32 Lab memory cleared."
+        );
+
+        return;
+    }
+}
+
+
+/* -----------------------------
+   CHAT
+----------------------------- */
+
+function addChatMessage(
+    text,
+    type
+) {
+
+    const message =
+        document.createElement(
+            "div"
+        );
+
+    message.className =
+        "message " +
+        (
+            type === "user"
+                ? "user-message"
+                : "ai-message"
+        );
+
+    message.textContent =
+        text;
+
+    chatLog.appendChild(
+        message
+    );
+
+    chatLog.scrollTop =
+        chatLog.scrollHeight;
+}
+
+
+async function chat() {
+
+    const prompt =
+        chatInput.value.trim();
+
+    if (!prompt) {
+        return;
+    }
+
+    addChatMessage(
+        prompt,
+        "user"
+    );
+
+    chatInput.value = "";
+
+    if (!connected) {
+
+        addChatMessage(
+            "Please connect the ESP32 first.",
+            "ai"
+        );
+
+        return;
+    }
+
+    const requestId =
+        String(
+            ++requestCounter
+        );
+
+    const responsePromise =
+        new Promise(
+            resolve => {
+
+                pendingRequests.set(
+                    requestId,
+                    resolve
+                );
+            }
+        );
+
+    await sendRaw(
+        "CHAT|" +
+        requestId +
+        "|" +
+        escapeProtocol(
+            prompt
+        )
+    );
+
+    const response =
+        await responsePromise;
+
+    addChatMessage(
+        response,
+        "ai"
+    );
+}
+
+
+function escapeProtocol(
+    text
+) {
+
+    return text
+        .replace(
+            /\\/g,
+            "\\\\"
+        )
+        .replace(
+            /\|/g,
+            "\\p"
+        )
+        .replace(
+            /\n/g,
+            "\\n"
+        )
+        .replace(
+            /\r/g,
+            "\\r"
+        );
+}
+
+
+/* -----------------------------
+   TRAINING DATA
+----------------------------- */
+
+function addTrainingData() {
+
+    const text =
+        trainingText.value.trim();
+
+    if (!text) {
+
+        alert(
+            "Enter some training text first."
+        );
+
+        return;
+    }
+
+    trainingExamples.push(
+        text
+    );
+
+    trainingText.value = "";
+
+    updateTrainingDisplay();
+}
+
+
+function updateTrainingDisplay() {
+
+    trainingCount.textContent =
+        "Training data added this session: " +
+        trainingExamples.length;
+
+    trainingExamplesElement.innerHTML =
+        "";
+
+    if (
+        trainingExamples.length === 0
+    ) {
+
+        trainingExamplesElement.textContent =
+            "No training examples yet.";
+
+        return;
+    }
+
+    trainingExamples.forEach(
+        (example, index) => {
+
+            const div =
+                document.createElement(
+                    "div"
+                );
+
+            div.className =
+                "example";
+
+            const title =
+                document.createElement(
+                    "strong"
+                );
+
+            title.textContent =
+                "Example " +
+                (index + 1);
+
+            const body =
+                document.createElement(
+                    "div"
+                );
+
+            body.textContent =
+                example;
+
+            div.appendChild(
+                title
+            );
+
+            div.appendChild(
+                document.createElement(
+                    "br"
+                )
+            );
+
+            div.appendChild(
+                body
+            );
+
+            trainingExamplesElement
+                .appendChild(div);
+        }
+    );
+}
+
+
+/* -----------------------------
+   REAL TRAINING ENGINE HOOK
+----------------------------- */
+
+/*
+    IMPORTANT:
+
+    This function is intentionally NOT
+    pretending to train the model.
+
+    The actual browser neural-network
+    trainer will be installed here.
+
+    It will eventually perform:
+
+        text
+          ↓
+        byte tokens
+          ↓
+        transformer
+          ↓
+        prediction
+          ↓
+        loss
+          ↓
+        backpropagation
+          ↓
+        weight updates
+          ↓
+        trained weights
+          ↓
+        model export
+          ↓
+        ESP32
+
+    The Windows computer will NOT need
+    to stay on for this.
+*/
+
+async function startTraining() {
+
+    if (
+        trainingPassword.value !==
+        TRAINING_PASSWORD
+    ) {
+
+        alert(
+            "Incorrect training password."
+        );
+
+        return;
+    }
+
+    if (
+        trainingExamples.length === 0
+    ) {
+
+        alert(
+            "Add training data first."
+        );
+
+        return;
+    }
+
+    /*
+        We are deliberately stopping here
+        until the actual neural trainer is
+        installed.
+    */
+
+    alert(
+        "The real browser neural-network trainer has not been installed yet. No fake training will be performed."
+    );
+}
+
+
+/* -----------------------------
+   MODEL INFO
+----------------------------- */
+
+async function updateModelInfo() {
+
+    if (!connected) {
+
+        modelInfo.textContent =
+            "ESP32 not connected.";
+
+        return;
+    }
+
+    modelInfo.textContent =
+        "Checking model...";
+
+    await sendCommand(
+        "INFO"
+    );
+
+    await sendCommand(
+        "MODEL_STATUS"
+    );
+}
+
+
+/* -----------------------------
+   CLEAR LAB
+----------------------------- */
+
+function clearLab() {
+
+    if (
+        !confirm(
+            "Clear all Lab data from this browser?"
+        )
+    ) {
+        return;
+    }
+
+    trainingExamples =
+        [];
+
+    updateTrainingDisplay();
+
+    if (connected) {
+        sendCommand(
+            "MEMORY_CLEAR"
+        );
+    }
+}
+
+
+/* -----------------------------
+   EVENTS
+----------------------------- */
+
+connectButton.addEventListener(
+    "click",
+    connectESP32
+);
+
+disconnectButton.addEventListener(
+    "click",
+    disconnectESP32
+);
+
+sendButton.addEventListener(
+    "click",
+    chat
+);
+
+addTrainingButton.addEventListener(
+    "click",
+    addTrainingData
+);
+
+trainButton.addEventListener(
+    "click",
+    startTraining
+);
+
+clearLabButton.addEventListener(
+    "click",
+    clearLab
+);
+
+chatInput.addEventListener(
+    "keydown",
+    event => {
+
+        if (
+            event.key === "Enter" &&
+            !event.shiftKey
+        ) {
+
+            event.preventDefault();
+
+            chat();
+        }
+    }
+);
+
+
+/* -----------------------------
+   INITIAL STATE
+----------------------------- */
+
+updateTrainingDisplay();
+
+if (
+    !("serial" in navigator)
+) {
+
+    connectionStatus.textContent =
+        "Web Serial is not available in this browser.";
+}
+
+</script>
+
+</body>
+</html>
