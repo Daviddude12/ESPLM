@@ -3,58 +3,52 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ESPLM — ESP32 Language Model</title>
+
+<title>ESPLM</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
 
 <style>
-    * {
-        box-sizing: border-box;
-    }
-
     body {
-        margin: 0;
         font-family: Arial, sans-serif;
+        margin: 0;
         background: #10131a;
-        color: #f4f6fa;
+        color: #f1f1f1;
     }
 
     header {
-        padding: 22px;
+        padding: 20px;
         background: #171b24;
         border-bottom: 1px solid #303644;
     }
 
     h1 {
         margin: 0 0 6px 0;
-        font-size: 28px;
     }
 
     .subtitle {
-        color: #aeb7c7;
+        color: #aeb6c5;
     }
 
     nav {
         display: flex;
         gap: 10px;
-        padding: 12px 18px;
-        background: #141821;
+        padding: 12px;
+        background: #151922;
         border-bottom: 1px solid #303644;
-        flex-wrap: wrap;
     }
 
     button {
-        border: 1px solid #3a4353;
-        background: #202633;
+        background: #273142;
         color: white;
-        padding: 10px 15px;
+        border: 1px solid #465168;
         border-radius: 8px;
+        padding: 10px 15px;
         cursor: pointer;
-        font-size: 14px;
     }
 
     button:hover {
-        background: #293243;
+        background: #334056;
     }
 
     button:disabled {
@@ -62,18 +56,11 @@
         cursor: not-allowed;
     }
 
-    .tab-button.active {
-        background: #34415a;
-    }
-
-    main {
-        max-width: 1100px;
-        margin: auto;
-        padding: 20px;
-    }
-
     .tab {
         display: none;
+        padding: 20px;
+        max-width: 1000px;
+        margin: auto;
     }
 
     .tab.active {
@@ -81,37 +68,29 @@
     }
 
     .card {
-        background: #171c26;
-        border: 1px solid #303746;
+        background: #181d27;
+        border: 1px solid #303644;
         border-radius: 12px;
         padding: 18px;
         margin-bottom: 18px;
     }
 
-    .card h2,
-    .card h3 {
-        margin-top: 0;
-    }
-
     textarea,
-    input {
+    input,
+    select {
         width: 100%;
-        background: #0d1016;
+        box-sizing: border-box;
+        background: #0f1218;
         color: white;
-        border: 1px solid #3a4353;
+        border: 1px solid #3b4558;
         border-radius: 8px;
-        padding: 12px;
-        font-family: monospace;
-        font-size: 14px;
+        padding: 10px;
+        margin: 8px 0;
     }
 
     textarea {
-        min-height: 220px;
+        min-height: 180px;
         resize: vertical;
-    }
-
-    input {
-        margin-bottom: 10px;
     }
 
     .row {
@@ -122,79 +101,63 @@
     }
 
     .status {
-        padding: 10px;
+        padding: 12px;
         border-radius: 8px;
+        background: #0f1218;
+        border: 1px solid #303644;
+        white-space: pre-wrap;
+        margin-top: 10px;
+    }
+
+    .good {
+        color: #7ee787;
+    }
+
+    .warning {
+        color: #ffd166;
+    }
+
+    .bad {
+        color: #ff7b72;
+    }
+
+    .metric {
+        font-size: 18px;
+        margin: 8px 0;
+    }
+
+    .metric strong {
+        color: #7ee787;
+    }
+
+    #lossCanvas {
+        width: 100%;
+        max-width: 900px;
+        height: 250px;
         background: #0d1016;
-        border: 1px solid #303746;
+        border: 1px solid #303644;
+        border-radius: 8px;
+        margin-top: 12px;
+    }
+
+    .chatMessage {
+        background: #10141c;
+        border: 1px solid #303644;
+        padding: 12px;
+        border-radius: 8px;
         margin-top: 10px;
         white-space: pre-wrap;
     }
 
-    .log {
-        background: #090b10;
-        border: 1px solid #303746;
-        border-radius: 8px;
-        padding: 12px;
-        height: 220px;
-        overflow-y: auto;
-        white-space: pre-wrap;
-        font-family: monospace;
-        font-size: 13px;
-    }
-
-    .result {
-        background: #0b0e14;
-        border: 1px solid #3a4353;
-        border-radius: 8px;
-        padding: 14px;
-        min-height: 80px;
-        white-space: pre-wrap;
-        word-break: break-word;
-        font-family: monospace;
-    }
-
     .small {
-        color: #aeb7c7;
+        color: #9da7b8;
         font-size: 13px;
     }
 
-    .warning {
-        color: #ffd36b;
-    }
-
-    .success {
-        color: #8ee6a8;
-    }
-
-    .danger {
-        color: #ff8f8f;
-    }
-
-    select {
-        background: #0d1016;
-        color: white;
-        border: 1px solid #3a4353;
-        border-radius: 8px;
-        padding: 10px;
-    }
-
-    .stat-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-        gap: 10px;
-    }
-
-    .stat {
-        background: #0d1016;
-        border: 1px solid #303746;
-        border-radius: 8px;
-        padding: 12px;
-    }
-
-    .stat-value {
-        font-size: 20px;
-        font-weight: bold;
-        margin-top: 5px;
+    code {
+        background: #0b0e13;
+        padding: 2px 5px;
+        border-radius: 4px;
     }
 </style>
 </head>
@@ -203,127 +166,147 @@
 
 <header>
     <h1>ESPLM</h1>
-    <div class="subtitle">ESP32 Small Language Model — built from scratch</div>
+    <div class="subtitle">
+        Experimental Small Language Model
+    </div>
 </header>
 
 <nav>
-    <button class="tab-button active" data-tab="chatTab">Chat</button>
-    <button class="tab-button" data-tab="labTab">Lab / Training</button>
+    <button onclick="showTab('chatTab')">Chat</button>
+    <button onclick="showTab('labTab')">Lab / Training</button>
 </nav>
 
-<main>
-
-<!-- ================= CHAT ================= -->
+<!-- ========================================================= -->
+<!-- CHAT -->
+<!-- ========================================================= -->
 
 <section id="chatTab" class="tab active">
 
     <div class="card">
-        <h2>Chat with ESPLM</h2>
+        <h2>ESP32 Connection</h2>
 
         <div class="row">
-            <button id="connectButton">Connect ESP32</button>
-            <button id="disconnectButton" disabled>Disconnect</button>
-            <button id="infoButton" disabled>Model Info</button>
+            <button id="connectButton" onclick="connectESP32()">
+                Connect ESP32
+            </button>
+
+            <button id="disconnectButton"
+                    onclick="disconnectESP32()"
+                    disabled>
+                Disconnect
+            </button>
         </div>
 
-        <div id="connectionStatus" class="status">
-            ESP32: Not connected
+        <div id="serialStatus" class="status">
+            Not connected.
         </div>
     </div>
 
     <div class="card">
-        <h3>Message</h3>
+
+        <h2>Chat with ESPLM</h2>
 
         <textarea id="chatInput"
-            placeholder="Type a message for your ESP32 model..."></textarea>
+                  placeholder="Type something..."></textarea>
 
-        <br><br>
+        <button onclick="sendChat()">
+            Send
+        </button>
 
-        <button id="sendChatButton" disabled>Send to ESP32</button>
-
-        <h3>Response</h3>
-
-        <div id="chatResponse" class="result">
+        <div id="chatOutput"
+             class="chatMessage">
             No response yet.
         </div>
+
     </div>
 
     <div class="card">
-        <h3>ESP32 Information</h3>
 
-        <div id="espInfo" class="status">
-            Connect the ESP32 to see model information.
+        <h2>ESP32 Model Status</h2>
+
+        <button onclick="getESP32Info()">
+            Check ESP32
+        </button>
+
+        <div id="espInfo"
+             class="status">
+            Not checked yet.
         </div>
+
     </div>
 
 </section>
 
 
-<!-- ================= LAB ================= -->
+<!-- ========================================================= -->
+<!-- LAB -->
+<!-- ========================================================= -->
 
 <section id="labTab" class="tab">
 
     <div class="card">
-        <h2>Lab / Training</h2>
 
-        <p class="small">
-            This trains the actual neural network in your browser.
-            Training starts from random weights unless a previously trained
-            browser model is loaded.
-        </p>
+        <h2>Training Status</h2>
 
-        <div class="stat-grid">
-
-            <div class="stat">
-                <div class="small">Vocabulary</div>
-                <div class="stat-value">256 bytes</div>
-            </div>
-
-            <div class="stat">
-                <div class="small">Embedding</div>
-                <div class="stat-value">64</div>
-            </div>
-
-            <div class="stat">
-                <div class="small">Layers</div>
-                <div class="stat-value">4</div>
-            </div>
-
-            <div class="stat">
-                <div class="small">Attention heads</div>
-                <div class="stat-value">8</div>
-            </div>
-
-            <div class="stat">
-                <div class="small">FFN</div>
-                <div class="stat-value">240</div>
-            </div>
-
-            <div class="stat">
-                <div class="small">Context</div>
-                <div class="stat-value">256</div>
-            </div>
-
+        <div id="trainingStatus"
+             class="status">
+            Loading TensorFlow.js...
         </div>
+
+        <div class="metric">
+            Parameters:
+            <strong id="parameterCount">0</strong>
+        </div>
+
+        <div class="metric">
+            Training examples:
+            <strong id="exampleCount">0</strong>
+        </div>
+
     </div>
 
 
     <div class="card">
 
-        <h3>Training Data</h3>
+        <h2>Training Data</h2>
+
+        <p class="small">
+            Add normal text that you want the model to learn from.
+            The model learns byte-by-byte patterns from this text.
+        </p>
 
         <textarea id="trainingText"
-            placeholder="Put text here that you want ESPLM to learn..."></textarea>
+placeholder="Example:
 
-        <br><br>
+The sky is blue.
+Grass is green.
+Water is wet.
+Fire is hot.
+
+A dog is an animal.
+A cat is an animal.
+
+10 percent of 50 is 5.
+20 percent of 100 is 20.
+
+A hurricane is a powerful tropical storm.
+During dangerous weather, follow official emergency instructions."></textarea>
 
         <div class="row">
-            <button id="addDataButton">Add Training Data</button>
-            <button id="clearDataButton">Clear Saved Training Data</button>
+
+            <button onclick="addTrainingData()">
+                Add Training Data
+            </button>
+
+            <button onclick="clearTrainingData()">
+                Clear Saved Training Data
+            </button>
+
         </div>
 
-        <div id="dataStatus" class="status">
-            No new training data added yet.
+        <div id="dataStatus"
+             class="status">
+            No training data added yet.
         </div>
 
     </div>
@@ -331,43 +314,81 @@
 
     <div class="card">
 
-        <h3>Train Model</h3>
+        <h2>Train Model</h2>
 
         <p class="small">
-            Training happens directly in this browser. The Windows PC does
-            not need to stay on.
+            IMPORTANT: For the first test, use only 20 steps.
+            We want to see whether the loss decreases before doing
+            a longer training run.
         </p>
 
-        <div class="row">
+        <label>
+            Training steps
+        </label>
 
-            <label>
-                Training steps:
-                <select id="stepsSelect">
-                    <option value="20">20</option>
-                    <option value="50">50</option>
-                    <option value="100" selected>100</option>
-                    <option value="250">250</option>
-                </select>
-            </label>
+        <select id="trainingSteps">
+            <option value="20">20 steps — diagnostic test</option>
+            <option value="50">50 steps</option>
+            <option value="100">100 steps</option>
+            <option value="250">250 steps</option>
+        </select>
 
-            <button id="trainButton">Train Model</button>
+        <label>
+            Training password
+        </label>
 
+        <input id="trainingPassword"
+               type="password"
+               placeholder="Enter training password">
+
+        <button id="trainButton"
+                onclick="trainModel()">
+            Train Model
+        </button>
+
+        <div id="trainStatus"
+             class="status">
+            Waiting for training.
         </div>
-
-        <div id="trainingStatus" class="status">
-            Model has not been trained in this browser yet.
-        </div>
-
-        <br>
-
-        <div id="trainingLog" class="log"></div>
 
     </div>
 
 
     <div class="card">
 
-        <h3>Browser Model Test</h3>
+        <h2>Learning Measurement</h2>
+
+        <div class="metric">
+            Starting loss:
+            <strong id="startLoss">—</strong>
+        </div>
+
+        <div class="metric">
+            Current loss:
+            <strong id="currentLoss">—</strong>
+        </div>
+
+        <div class="metric">
+            Loss change:
+            <strong id="lossChange">—</strong>
+        </div>
+
+        <div id="learningVerdict"
+             class="status">
+            Run a short training test to measure learning.
+        </div>
+
+        <canvas id="lossCanvas"
+                width="900"
+                height="250">
+        </canvas>
+
+    </div>
+
+
+    <div class="card">
+
+        <h2>Browser Model Test</h2>
 
         <p class="small">
             This tests the neural network directly in the browser.
@@ -375,17 +396,14 @@
         </p>
 
         <input id="browserPrompt"
-            placeholder="Example: The sky is">
+               value="The sky is">
 
-        <br>
+        <button onclick="browserGenerate()">
+            Generate
+        </button>
 
-        <div class="row">
-            <button id="generateButton">Generate</button>
-        </div>
-
-        <br>
-
-        <div id="browserResult" class="result">
+        <div id="browserOutput"
+             class="chatMessage">
             No generation yet.
         </div>
 
@@ -394,24 +412,26 @@
 
     <div class="card">
 
-        <h3>Model Export</h3>
+        <h2>Export Model</h2>
 
         <p class="small">
-            Export the trained neural-network weights into the ESPLM model
-            format for the ESP32.
+            This exports the current browser neural-network weights.
+            The ESP32 loader is not finished yet, so exporting does
+            not mean the ESP32 can run the model yet.
         </p>
 
-        <button id="exportButton">Export .eslm Model</button>
+        <button onclick="exportModel()">
+            Export .eslm
+        </button>
 
-        <div id="exportStatus" class="status">
+        <div id="exportStatus"
+             class="status">
             No model exported yet.
         </div>
 
     </div>
 
 </section>
-
-</main>
 
 
 <script>
@@ -444,47 +464,43 @@ const CONFIG = {
 
 
 /* ============================================================
-   BASIC UI
+   GLOBAL STATE
    ============================================================ */
 
-document.querySelectorAll(".tab-button").forEach(button => {
+let model = null;
 
-    button.addEventListener("click", () => {
+let optimizer = null;
 
-        document.querySelectorAll(".tab-button")
-            .forEach(b => b.classList.remove("active"));
+let serialPort = null;
 
-        document.querySelectorAll(".tab")
-            .forEach(t => t.classList.remove("active"));
+let serialReader = null;
 
-        button.classList.add("active");
+let serialWriter = null;
 
-        document
-            .getElementById(button.dataset.tab)
-            .classList.add("active");
+let serialBuffer = "";
 
-    });
+let requestCounter = 0;
 
-});
+let savedExamples = [];
+
+let lossHistory = [];
 
 
 /* ============================================================
-   LOGGING
+   TAB CONTROL
    ============================================================ */
 
-const trainingLog = document.getElementById("trainingLog");
+function showTab(id) {
 
-function log(message) {
+    document
+        .querySelectorAll(".tab")
+        .forEach(tab => {
+            tab.classList.remove("active");
+        });
 
-    const time =
-        new Date().toLocaleTimeString();
-
-    trainingLog.textContent +=
-        `[${time}] ${message}\n`;
-
-    trainingLog.scrollTop =
-        trainingLog.scrollHeight;
-
+    document
+        .getElementById(id)
+        .classList.add("active");
 }
 
 
@@ -492,23 +508,25 @@ function log(message) {
    BYTE TOKENIZER
    ============================================================ */
 
-function textToBytes(text) {
+function encodeText(text) {
 
-    const encoded =
+    const bytes =
         new TextEncoder().encode(text);
 
-    return Array.from(encoded);
+    return Array.from(bytes);
 
 }
 
 
-function bytesToText(bytes) {
+function decodeBytes(bytes) {
 
     try {
 
         return new TextDecoder(
             "utf-8",
-            { fatal: false }
+            {
+                fatal: false
+            }
         ).decode(
             new Uint8Array(bytes)
         );
@@ -516,221 +534,129 @@ function bytesToText(bytes) {
     } catch {
 
         return "";
-
     }
 
 }
 
 
 /* ============================================================
-   TRANSFORMER MODEL
+   TRANSFORMER LAYER
    ============================================================ */
 
-class ESPLMModel {
+class TransformerLayer {
 
-    constructor() {
+    constructor(index) {
 
-        this.weights = [];
+        const d = CONFIG.embedDim;
+        const f = CONFIG.ffnDim;
 
-        this.layers = [];
-
-        this.build();
-
-    }
-
-
-    addVariable(name, shape) {
-
-        const variable =
+        this.qWeight =
             tf.variable(
                 tf.randomNormal(
-                    shape,
+                    [d, d],
                     0,
-                    0.02,
-                    "float32"
-                ),
-                true,
-                name
+                    Math.sqrt(2 / d)
+                )
             );
 
-        this.weights.push(variable);
-
-        return variable;
-
-    }
-
-
-    build() {
-
-        const D = CONFIG.embedDim;
-        const F = CONFIG.ffnDim;
-
-        /*
-         * Token embedding.
-         */
-        this.embedding =
-            this.addVariable(
-                "embedding",
-                [
-                    CONFIG.vocabSize,
-                    D
-                ]
+        this.kWeight =
+            tf.variable(
+                tf.randomNormal(
+                    [d, d],
+                    0,
+                    Math.sqrt(2 / d)
+                )
             );
 
-
-        /*
-         * NEW:
-         *
-         * Learned positional embeddings.
-         *
-         * Each position gets its own vector.
-         *
-         * Position 0 has one vector,
-         * position 1 has another,
-         * etc.
-         */
-        this.positionEmbedding =
-            this.addVariable(
-                "positionEmbedding",
-                [
-                    CONFIG.contextSize,
-                    D
-                ]
+        this.vWeight =
+            tf.variable(
+                tf.randomNormal(
+                    [d, d],
+                    0,
+                    Math.sqrt(2 / d)
+                )
             );
 
+        this.oWeight =
+            tf.variable(
+                tf.randomNormal(
+                    [d, d],
+                    0,
+                    Math.sqrt(2 / d)
+                )
+            );
 
-        for (
-            let layerIndex = 0;
-            layerIndex < CONFIG.numLayers;
-            layerIndex++
-        ) {
+        this.qBias =
+            tf.variable(
+                tf.zeros([d])
+            );
 
-            const layer = {};
+        this.kBias =
+            tf.variable(
+                tf.zeros([d])
+            );
 
-            layer.wq =
-                this.addVariable(
-                    `layer${layerIndex}_wq`,
-                    [D, D]
-                );
+        this.vBias =
+            tf.variable(
+                tf.zeros([d])
+            );
 
-            layer.bq =
-                this.addVariable(
-                    `layer${layerIndex}_bq`,
-                    [D]
-                );
-
-            layer.wk =
-                this.addVariable(
-                    `layer${layerIndex}_wk`,
-                    [D, D]
-                );
-
-            layer.bk =
-                this.addVariable(
-                    `layer${layerIndex}_bk`,
-                    [D]
-                );
-
-            layer.wv =
-                this.addVariable(
-                    `layer${layerIndex}_wv`,
-                    [D, D]
-                );
-
-            layer.bv =
-                this.addVariable(
-                    `layer${layerIndex}_bv`,
-                    [D]
-                );
-
-            layer.wo =
-                this.addVariable(
-                    `layer${layerIndex}_wo`,
-                    [D, D]
-                );
-
-            layer.bo =
-                this.addVariable(
-                    `layer${layerIndex}_bo`,
-                    [D]
-                );
-
-            layer.norm1Gamma =
-                this.addVariable(
-                    `layer${layerIndex}_norm1Gamma`,
-                    [D]
-                );
-
-            layer.norm1Beta =
-                this.addVariable(
-                    `layer${layerIndex}_norm1Beta`,
-                    [D]
-                );
-
-            layer.ff1 =
-                this.addVariable(
-                    `layer${layerIndex}_ff1`,
-                    [D, F]
-                );
-
-            layer.ff1Bias =
-                this.addVariable(
-                    `layer${layerIndex}_ff1Bias`,
-                    [F]
-                );
-
-            layer.ff2 =
-                this.addVariable(
-                    `layer${layerIndex}_ff2`,
-                    [F, D]
-                );
-
-            layer.ff2Bias =
-                this.addVariable(
-                    `layer${layerIndex}_ff2Bias`,
-                    [D]
-                );
-
-            layer.norm2Gamma =
-                this.addVariable(
-                    `layer${layerIndex}_norm2Gamma`,
-                    [D]
-                );
-
-            layer.norm2Beta =
-                this.addVariable(
-                    `layer${layerIndex}_norm2Beta`,
-                    [D]
-                );
-
-            this.layers.push(layer);
-
-        }
-
-
-        this.finalGamma =
-            this.addVariable(
-                "finalGamma",
-                [D]
+        this.oBias =
+            tf.variable(
+                tf.zeros([d])
             );
 
 
-        this.finalBeta =
-            this.addVariable(
-                "finalBeta",
-                [D]
+        this.norm1Gamma =
+            tf.variable(
+                tf.ones([d])
             );
 
-    }
+        this.norm1Beta =
+            tf.variable(
+                tf.zeros([d])
+            );
 
 
-    parameterCount() {
+        this.ffn1Weight =
+            tf.variable(
+                tf.randomNormal(
+                    [d, f],
+                    0,
+                    Math.sqrt(2 / d)
+                )
+            );
 
-        return this.weights.reduce(
-            (sum, variable) =>
-                sum + variable.size,
-            0
-        );
+        this.ffn1Bias =
+            tf.variable(
+                tf.zeros([f])
+            );
+
+
+        this.ffn2Weight =
+            tf.variable(
+                tf.randomNormal(
+                    [f, d],
+                    0,
+                    Math.sqrt(2 / f)
+                )
+            );
+
+        this.ffn2Bias =
+            tf.variable(
+                tf.zeros([d])
+            );
+
+
+        this.norm2Gamma =
+            tf.variable(
+                tf.ones([d])
+            );
+
+        this.norm2Beta =
+            tf.variable(
+                tf.zeros([d])
+            );
 
     }
 
@@ -738,35 +664,31 @@ class ESPLMModel {
     layerNorm(x, gamma, beta) {
 
         const mean =
-            tf.mean(
-                x,
-                1,
-                true
-            );
+            tf.mean(x, 1, true);
 
         const variance =
             tf.mean(
                 tf.square(
-                    tf.sub(
-                        x,
-                        mean
-                    )
+                    tf.sub(x, mean)
                 ),
                 1,
                 true
             );
 
+        const normalized =
+            tf.div(
+                tf.sub(x, mean),
+                tf.sqrt(
+                    tf.add(
+                        variance,
+                        1e-5
+                    )
+                )
+            );
+
         return tf.add(
             tf.mul(
-                tf.div(
-                    tf.sub(x, mean),
-                    tf.sqrt(
-                        tf.add(
-                            variance,
-                            1e-5
-                        )
-                    )
-                ),
+                normalized,
                 gamma
             ),
             beta
@@ -775,264 +697,360 @@ class ESPLMModel {
     }
 
 
-    gelu(x) {
+    attention(x) {
 
-        const c =
-            tf.scalar(
-                Math.sqrt(
-                    2 / Math.PI
-                )
-            );
+        return tf.tidy(() => {
 
-        return tf.mul(
-            0.5,
-            tf.mul(
-                x,
+            const d = CONFIG.embedDim;
+
+            const headDim =
+                d / CONFIG.numHeads;
+
+
+            const q =
                 tf.add(
-                    1,
-                    tf.tanh(
-                        tf.mul(
-                            c,
-                            tf.add(
-                                x,
-                                tf.mul(
-                                    0.044715,
-                                    tf.pow(
-                                        x,
-                                        3
-                                    )
-                                )
-                            )
-                        )
-                    )
-                )
-            )
-        );
+                    tf.matMul(
+                        x,
+                        this.qWeight
+                    ),
+                    this.qBias
+                );
 
-    }
+            const k =
+                tf.add(
+                    tf.matMul(
+                        x,
+                        this.kWeight
+                    ),
+                    this.kBias
+                );
 
-
-    attention(x, layer) {
-
-        const D =
-            CONFIG.embedDim;
-
-        const H =
-            CONFIG.numHeads;
-
-        const headDim =
-            D / H;
-
-        const length =
-            x.shape[0];
-
-
-        let q =
-            tf.add(
-                tf.matMul(
-                    x,
-                    layer.wq
-                ),
-                layer.bq
-            );
-
-
-        let k =
-            tf.add(
-                tf.matMul(
-                    x,
-                    layer.wk
-                ),
-                layer.bk
-            );
-
-
-        let v =
-            tf.add(
-                tf.matMul(
-                    x,
-                    layer.wv
-                ),
-                layer.bv
-            );
-
-
-        const headOutputs = [];
-
-
-        /*
-         * IMPORTANT:
-         *
-         * Every attention calculation is 2D.
-         * This avoids the batched-matMul gradient
-         * problem we encountered earlier.
-         */
-
-        for (
-            let h = 0;
-            h < H;
-            h++
-        ) {
-
-            const start =
-                h * headDim;
-
-            const end =
-                start + headDim;
-
-
-            const qHead =
-                q.slice(
-                    [0, start],
-                    [length, headDim]
+            const v =
+                tf.add(
+                    tf.matMul(
+                        x,
+                        this.vWeight
+                    ),
+                    this.vBias
                 );
 
 
-            const kHead =
-                k.slice(
-                    [0, start],
-                    [length, headDim]
-                );
+            const heads = [];
 
-
-            const vHead =
-                v.slice(
-                    [0, start],
-                    [length, headDim]
-                );
-
-
-            let scores =
-                tf.matMul(
-                    qHead,
-                    kHead,
-                    false,
-                    true
-                );
-
-
-            scores =
-                tf.div(
-                    scores,
-                    Math.sqrt(headDim)
-                );
-
-
-            /*
-             * Causal mask:
-             *
-             * A position can only look at
-             * itself and earlier positions.
-             */
-
-            const maskData = [];
 
             for (
-                let i = 0;
-                i < length;
-                i++
+                let h = 0;
+                h < CONFIG.numHeads;
+                h++
             ) {
 
-                for (
-                    let j = 0;
-                    j < length;
-                    j++
-                ) {
+                const start =
+                    h * headDim;
 
-                    maskData.push(
-                        j <= i
-                            ? 0
-                            : -1e9
+                const qh =
+                    q.slice(
+                        [0, start],
+                        [-1, headDim]
                     );
 
-                }
+                const kh =
+                    k.slice(
+                        [0, start],
+                        [-1, headDim]
+                    );
+
+                const vh =
+                    v.slice(
+                        [0, start],
+                        [-1, headDim]
+                    );
+
+
+                let scores =
+                    tf.matMul(
+                        qh,
+                        kh,
+                        false,
+                        true
+                    );
+
+                scores =
+                    tf.div(
+                        scores,
+                        Math.sqrt(headDim)
+                    );
+
+
+                const seq =
+                    x.shape[0];
+
+
+                const mask =
+                    tf.linalg.bandPart(
+                        tf.ones(
+                            [seq, seq]
+                        ),
+                        -1,
+                        0
+                    );
+
+
+                const neg =
+                    tf.mul(
+                        tf.sub(
+                            tf.onesLike(mask),
+                            mask
+                        ),
+                        -1e9
+                    );
+
+
+                scores =
+                    tf.add(
+                        scores,
+                        neg
+                    );
+
+
+                const weights =
+                    tf.softmax(scores);
+
+
+                const output =
+                    tf.matMul(
+                        weights,
+                        vh
+                    );
+
+
+                heads.push(output);
 
             }
 
 
-            const mask =
-                tf.tensor(
-                    maskData,
-                    [
-                        length,
-                        length
-                    ]
+            const combined =
+                tf.concat(
+                    heads,
+                    1
                 );
 
 
-            scores =
-                tf.add(
-                    scores,
-                    mask
-                );
-
-
-            const probabilities =
-                tf.softmax(
-                    scores
-                );
-
-
-            const headOutput =
+            return tf.add(
                 tf.matMul(
-                    probabilities,
-                    vHead
+                    combined,
+                    this.oWeight
+                ),
+                this.oBias
+            );
+
+        });
+
+    }
+
+
+    forward(x) {
+
+        return tf.tidy(() => {
+
+            const normalized1 =
+                this.layerNorm(
+                    x,
+                    this.norm1Gamma,
+                    this.norm1Beta
+                );
+
+            const attn =
+                this.attention(
+                    normalized1
+                );
+
+            const residual1 =
+                tf.add(
+                    x,
+                    attn
                 );
 
 
-            headOutputs.push(
-                headOutput
+            const normalized2 =
+                this.layerNorm(
+                    residual1,
+                    this.norm2Gamma,
+                    this.norm2Beta
+                );
+
+
+            const hidden =
+                tf.add(
+                    tf.matMul(
+                        normalized2,
+                        this.ffn1Weight
+                    ),
+                    this.ffn1Bias
+                );
+
+
+            const activated =
+                tf.relu(hidden);
+
+
+            const output =
+                tf.add(
+                    tf.matMul(
+                        activated,
+                        this.ffn2Weight
+                    ),
+                    this.ffn2Bias
+                );
+
+
+            return tf.add(
+                residual1,
+                output
+            );
+
+        });
+
+    }
+
+}
+
+
+/* ============================================================
+   MODEL
+   ============================================================ */
+
+class ESPLMModel {
+
+    constructor() {
+
+        const d = CONFIG.embedDim;
+
+        this.tokenEmbedding =
+            tf.variable(
+                tf.randomNormal(
+                    [
+                        CONFIG.vocabSize,
+                        d
+                    ],
+                    0,
+                    0.02
+                )
+            );
+
+
+        this.positionEmbedding =
+            tf.variable(
+                tf.randomNormal(
+                    [
+                        CONFIG.contextSize,
+                        d
+                    ],
+                    0,
+                    0.02
+                )
+            );
+
+
+        this.layers = [];
+
+        for (
+            let i = 0;
+            i < CONFIG.numLayers;
+            i++
+        ) {
+
+            this.layers.push(
+                new TransformerLayer(i)
             );
 
         }
 
 
-        const combined =
-            tf.concat(
-                headOutputs,
-                1
+        this.finalGamma =
+            tf.variable(
+                tf.ones([d])
             );
 
-
-        return tf.add(
-            tf.matMul(
-                combined,
-                layer.wo
-            ),
-            layer.bo
-        );
+        this.finalBeta =
+            tf.variable(
+                tf.zeros([d])
+            );
 
     }
 
 
-    forward(tokenIds) {
+    getTrainableVariables() {
+
+        const vars = [
+            this.tokenEmbedding,
+            this.positionEmbedding,
+            this.finalGamma,
+            this.finalBeta
+        ];
+
+
+        for (
+            const layer of this.layers
+        ) {
+
+            vars.push(
+                layer.qWeight,
+                layer.kWeight,
+                layer.vWeight,
+                layer.oWeight,
+
+                layer.qBias,
+                layer.kBias,
+                layer.vBias,
+                layer.oBias,
+
+                layer.norm1Gamma,
+                layer.norm1Beta,
+
+                layer.ffn1Weight,
+                layer.ffn1Bias,
+
+                layer.ffn2Weight,
+                layer.ffn2Bias,
+
+                layer.norm2Gamma,
+                layer.norm2Beta
+            );
+
+        }
+
+        return vars;
+
+    }
+
+
+    parameterCount() {
+
+        return this
+            .getTrainableVariables()
+            .reduce(
+                (sum, variable) =>
+                    sum + variable.size,
+                0
+            );
+
+    }
+
+
+    forward(inputTensor) {
 
         return tf.tidy(() => {
 
-            const length =
-                tokenIds.length;
-
-
-            /*
-             * Token embeddings.
-             */
-
             let x =
                 tf.gather(
-                    this.embedding,
-                    tf.tensor1d(
-                        tokenIds,
-                        "int32"
-                    )
+                    this.tokenEmbedding,
+                    inputTensor
                 );
 
 
-            /*
-             * NEW:
-             *
-             * Add the learned position vector
-             * for every position.
-             */
+            const length =
+                inputTensor.shape[0];
+
 
             const positions =
                 tf.range(
@@ -1043,7 +1061,7 @@ class ESPLMModel {
                 );
 
 
-            const positionVectors =
+            const positional =
                 tf.gather(
                     this.positionEmbedding,
                     positions
@@ -1053,99 +1071,69 @@ class ESPLMModel {
             x =
                 tf.add(
                     x,
-                    positionVectors
+                    positional
                 );
 
 
-            /*
-             * Transformer layers.
-             */
-
             for (
-                const layer
-                of this.layers
+                const layer of this.layers
             ) {
 
-                const normalized1 =
-                    this.layerNorm(
-                        x,
-                        layer.norm1Gamma,
-                        layer.norm1Beta
-                    );
-
-
-                const attentionOutput =
-                    this.attention(
-                        normalized1,
-                        layer
-                    );
-
-
                 x =
-                    tf.add(
-                        x,
-                        attentionOutput
-                    );
-
-
-                const normalized2 =
-                    this.layerNorm(
-                        x,
-                        layer.norm2Gamma,
-                        layer.norm2Beta
-                    );
-
-
-                const ff1 =
-                    tf.add(
-                        tf.matMul(
-                            normalized2,
-                            layer.ff1
-                        ),
-                        layer.ff1Bias
-                    );
-
-
-                const activated =
-                    this.gelu(
-                        ff1
-                    );
-
-
-                const ff2 =
-                    tf.add(
-                        tf.matMul(
-                            activated,
-                            layer.ff2
-                        ),
-                        layer.ff2Bias
-                    );
-
-
-                x =
-                    tf.add(
-                        x,
-                        ff2
-                    );
+                    layer.forward(x);
 
             }
 
 
-            x =
-                this.layerNorm(
+            const mean =
+                tf.mean(
                     x,
-                    this.finalGamma,
+                    1,
+                    true
+                );
+
+            const variance =
+                tf.mean(
+                    tf.square(
+                        tf.sub(x, mean)
+                    ),
+                    1,
+                    true
+                );
+
+
+            x =
+                tf.div(
+                    tf.sub(x, mean),
+                    tf.sqrt(
+                        tf.add(
+                            variance,
+                            1e-5
+                        )
+                    )
+                );
+
+
+            x =
+                tf.add(
+                    tf.mul(
+                        x,
+                        this.finalGamma
+                    ),
                     this.finalBeta
                 );
 
 
             /*
              * Tied output embedding.
+             *
+             * The same token embedding matrix is used
+             * to produce the output logits.
              */
 
             return tf.matMul(
                 x,
-                this.embedding,
+                this.tokenEmbedding,
                 false,
                 true
             );
@@ -1154,591 +1142,735 @@ class ESPLMModel {
 
     }
 
-
-    async generate(prompt, maxNewBytes = 96) {
-
-        let tokens =
-            textToBytes(prompt);
-
-
-        if (
-            tokens.length === 0
-        ) {
-
-            tokens = [32];
-
-        }
-
-
-        for (
-            let step = 0;
-            step < maxNewBytes;
-            step++
-        ) {
-
-            let context =
-                tokens.slice(
-                    -CONFIG.contextSize
-                );
-
-
-            const logits =
-                this.forward(
-                    context
-                );
-
-
-            const lastLogits =
-                logits
-                    .slice(
-                        [
-                            context.length - 1,
-                            0
-                        ],
-                        [
-                            1,
-                            CONFIG.vocabSize
-                        ]
-                    )
-                    .squeeze();
-
-
-            /*
-             * Temperature makes generation
-             * less completely deterministic.
-             */
-
-            const temperature =
-                0.9;
-
-
-            const scaled =
-                tf.div(
-                    lastLogits,
-                    temperature
-                );
-
-
-            const probabilities =
-                tf.softmax(
-                    scaled
-                );
-
-
-            /*
-             * Sample from the probability
-             * distribution.
-             */
-
-            const values =
-                await probabilities.data();
-
-
-            const nextToken =
-                sampleToken(
-                    values
-                );
-
-
-            tokens.push(
-                nextToken
-            );
-
-
-            logits.dispose();
-            lastLogits.dispose();
-            scaled.dispose();
-            probabilities.dispose();
-
-
-            /*
-             * Give the browser a chance
-             * to update its interface.
-             */
-
-            if (
-                step % 4 === 0
-            ) {
-
-                await new Promise(
-                    resolve =>
-                        setTimeout(
-                            resolve,
-                            0
-                        )
-                );
-
-            }
-
-        }
-
-
-        return bytesToText(
-            tokens
-        );
-
-    }
-
 }
 
 
 /* ============================================================
-   SAMPLING
+   MODEL CREATION
    ============================================================ */
 
-function sampleToken(probabilities) {
+async function createModel() {
 
-    let random =
-        Math.random();
-
-    for (
-        let i = 0;
-        i < probabilities.length;
-        i++
-    ) {
-
-        random -=
-            probabilities[i];
-
-        if (
-            random <= 0
-        ) {
-
-            return i;
-
-        }
-
+    if (model !== null) {
+        return;
     }
 
-    return 32;
 
-}
+    await tf.ready();
 
-
-/* ============================================================
-   CREATE MODEL
-   ============================================================ */
-
-let model = null;
-
-function createModel() {
-
-    if (model) {
-
-        model.weights.forEach(
-            w => w.dispose()
-        );
-
-    }
 
     model =
         new ESPLMModel();
 
-    document.getElementById(
-        "trainingStatus"
-    ).textContent =
-        `Model ready. ${model.parameterCount().toLocaleString()} trainable parameters.`;
 
-    log(
-        `Created new model with ${model.parameterCount().toLocaleString()} trainable parameters.`
-    );
+    optimizer =
+        tf.train.adam(
+            CONFIG.learningRate
+        );
+
+
+    const count =
+        model.parameterCount();
+
+
+    document
+        .getElementById(
+            "parameterCount"
+        )
+        .textContent =
+        count.toLocaleString();
+
+
+    document
+        .getElementById(
+            "trainingStatus"
+        )
+        .innerHTML =
+        "Model ready.<br>" +
+        count.toLocaleString() +
+        " trainable parameters.";
+
+
+    updateExampleCount();
 
 }
-
-
-createModel();
 
 
 /* ============================================================
    TRAINING DATA
    ============================================================ */
 
-let trainingExamples =
-    JSON.parse(
-        localStorage.getItem(
-            "esplm_training_examples"
-        ) || "[]"
-    );
+function loadTrainingData() {
 
+    try {
 
-function updateDataStatus() {
+        const raw =
+            localStorage.getItem(
+                "esplm_training_examples"
+            );
 
-    const element =
-        document.getElementById(
-            "dataStatus"
-        );
+        if (!raw) {
+            savedExamples = [];
+            return;
+        }
 
+        savedExamples =
+            JSON.parse(raw);
 
-    element.textContent =
-        `${trainingExamples.length} saved training example(s).`;
+    } catch {
 
+        savedExamples = [];
+
+    }
 
 }
 
 
-updateDataStatus();
+function saveTrainingData() {
+
+    localStorage.setItem(
+        "esplm_training_examples",
+        JSON.stringify(
+            savedExamples
+        )
+    );
+
+}
 
 
-document.getElementById(
-    "addDataButton"
-).addEventListener(
-    "click",
-    () => {
+function updateExampleCount() {
 
-        const text =
-            document.getElementById(
-                "trainingText"
-            ).value.trim();
+    document
+        .getElementById(
+            "exampleCount"
+        )
+        .textContent =
+        savedExamples.length;
 
-
-        if (!text) {
-
-            alert(
-                "Put some training text in the box first."
-            );
-
-            return;
-
-        }
-
-
-        trainingExamples.push(
-            text
-        );
-
-
-        localStorage.setItem(
-            "esplm_training_examples",
-            JSON.stringify(
-                trainingExamples
-            )
-        );
-
-
-        document.getElementById(
-            "trainingText"
-        ).value = "";
-
-
-        updateDataStatus();
-
-
-        document.getElementById(
+    document
+        .getElementById(
             "dataStatus"
-        ).textContent +=
-            " Training data added successfully.";
+        )
+        .textContent =
+        savedExamples.length === 0
+            ? "No training data added yet."
+            : savedExamples.length +
+              " saved training example(s).";
 
-    }
-);
+}
 
 
-document.getElementById(
-    "clearDataButton"
-).addEventListener(
-    "click",
-    () => {
+function addTrainingData() {
 
-        if (
-            !confirm(
-                "Clear all saved training data?"
+    const text =
+        document
+            .getElementById(
+                "trainingText"
             )
-        ) {
-
-            return;
-
-        }
+            .value
+            .trim();
 
 
-        trainingExamples = [];
+    if (!text) {
 
+        document
+            .getElementById(
+                "dataStatus"
+            )
+            .textContent =
+            "Please enter some training text first.";
 
-        localStorage.removeItem(
-            "esplm_training_examples"
-        );
-
-
-        updateDataStatus();
+        return;
 
     }
-);
+
+
+    savedExamples.push(text);
+
+    saveTrainingData();
+
+    updateExampleCount();
+
+
+    document
+        .getElementById(
+            "trainingText"
+        )
+        .value = "";
+
+}
+
+
+function clearTrainingData() {
+
+    if (
+        !confirm(
+            "Clear all saved training data?"
+        )
+    ) {
+        return;
+    }
+
+
+    savedExamples = [];
+
+    saveTrainingData();
+
+    updateExampleCount();
+
+}
 
 
 /* ============================================================
-   BUILD TRAINING SEQUENCES
+   CREATE TRAINING SEQUENCE
    ============================================================ */
 
-function buildTrainingSequences() {
+function makeTrainingSequence() {
 
-    const allBytes = [];
+    if (
+        savedExamples.length === 0
+    ) {
+
+        throw new Error(
+            "No training data has been added."
+        );
+
+    }
+
+
+    let combined =
+        savedExamples.join(
+            "\n\n"
+        );
+
+
+    let bytes =
+        encodeText(combined);
+
+
+    if (
+        bytes.length < 2
+    ) {
+
+        throw new Error(
+            "Training data is too short."
+        );
+
+    }
+
+
+    /*
+     * Repeat the training text if necessary.
+     *
+     * This gives the model enough bytes to create
+     * a sequence even when the example is small.
+     */
+
+    while (
+        bytes.length <
+        CONFIG.trainingSequence + 1
+    ) {
+
+        bytes =
+            bytes.concat(bytes);
+
+    }
+
+
+    const maxStart =
+        Math.max(
+            0,
+            bytes.length -
+            CONFIG.trainingSequence -
+            1
+        );
+
+
+    const start =
+        Math.floor(
+            Math.random() *
+            (maxStart + 1)
+        );
+
+
+    const input =
+        bytes.slice(
+            start,
+            start +
+            CONFIG.trainingSequence
+        );
+
+
+    const target =
+        bytes.slice(
+            start + 1,
+            start +
+            CONFIG.trainingSequence +
+            1
+        );
+
+
+    return {
+        input,
+        target
+    };
+
+}
+
+
+/* ============================================================
+   CALCULATE LOSS
+   ============================================================ */
+
+function calculateLoss(sequence) {
+
+    return tf.tidy(() => {
+
+        const input =
+            tf.tensor1d(
+                sequence.input,
+                "int32"
+            );
+
+
+        const target =
+            tf.tensor1d(
+                sequence.target,
+                "int32"
+            );
+
+
+        const logits =
+            model.forward(
+                input
+            );
+
+
+        const losses =
+            tf.losses.sparseCategoricalCrossentropy(
+                target,
+                logits,
+                {
+                    fromLogits: true
+                }
+            );
+
+
+        return tf.mean(losses);
+
+    });
+
+}
+
+
+/* ============================================================
+   SINGLE TRAINING STEP
+   ============================================================ */
+
+function trainOneStep(sequence) {
+
+    const input =
+        tf.tensor1d(
+            sequence.input,
+            "int32"
+        );
+
+    const target =
+        tf.tensor1d(
+            sequence.target,
+            "int32"
+        );
+
+
+    const loss =
+        optimizer.minimize(
+            () => {
+
+                const logits =
+                    model.forward(
+                        input
+                    );
+
+
+                const losses =
+                    tf.losses.sparseCategoricalCrossentropy(
+                        target,
+                        logits,
+                        {
+                            fromLogits: true
+                        }
+                    );
+
+
+                return tf.mean(losses);
+
+            },
+            true,
+            model.getTrainableVariables()
+        );
+
+
+    const value =
+        loss.dataSync()[0];
+
+
+    loss.dispose();
+
+    input.dispose();
+
+    target.dispose();
+
+
+    return value;
+
+}
+
+
+/* ============================================================
+   LOSS GRAPH
+   ============================================================ */
+
+function drawLossGraph() {
+
+    const canvas =
+        document.getElementById(
+            "lossCanvas"
+        );
+
+    const ctx =
+        canvas.getContext("2d");
+
+
+    ctx.clearRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+
+    if (
+        lossHistory.length === 0
+    ) {
+        return;
+    }
+
+
+    const padding = 35;
+
+    const width =
+        canvas.width -
+        padding * 2;
+
+    const height =
+        canvas.height -
+        padding * 2;
+
+
+    const maxLoss =
+        Math.max(
+            ...lossHistory
+        );
+
+    const minLoss =
+        Math.min(
+            ...lossHistory
+        );
+
+
+    const range =
+        Math.max(
+            0.0001,
+            maxLoss - minLoss
+        );
+
+
+    ctx.beginPath();
 
 
     for (
-        const example
-        of trainingExamples
+        let i = 0;
+        i < lossHistory.length;
+        i++
     ) {
 
-        const bytes =
-            textToBytes(
-                example
-            );
+        const x =
+            padding +
+            (
+                i /
+                Math.max(
+                    1,
+                    lossHistory.length - 1
+                )
+            ) *
+            width;
 
 
-        for (
-            const byte
-            of bytes
-        ) {
+        const y =
+            padding +
+            (
+                1 -
+                (
+                    (
+                        lossHistory[i] -
+                        minLoss
+                    ) /
+                    range
+                )
+            ) *
+            height;
 
-            allBytes.push(
-                byte
-            );
 
+        if (i === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
         }
+
+    }
+
+
+    ctx.strokeStyle = "#7ee787";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+
+    ctx.fillStyle = "#9da7b8";
+    ctx.font = "12px Arial";
+
+
+    ctx.fillText(
+        "Loss",
+        8,
+        18
+    );
+
+
+    ctx.fillText(
+        maxLoss.toFixed(2),
+        5,
+        padding + 5
+    );
+
+
+    ctx.fillText(
+        minLoss.toFixed(2),
+        5,
+        canvas.height - padding
+    );
+
+}
+
+
+/* ============================================================
+   TRAIN MODEL
+   ============================================================ */
+
+async function trainModel() {
+
+    const password =
+        document
+            .getElementById(
+                "trainingPassword"
+            )
+            .value;
+
+
+    if (
+        password !== CONFIG.password
+    ) {
+
+        document
+            .getElementById(
+                "trainStatus"
+            )
+            .innerHTML =
+            '<span class="bad">' +
+            "Incorrect training password." +
+            "</span>";
+
+        return;
 
     }
 
 
     if (
-        allBytes.length <
-        CONFIG.trainingSequence + 1
+        savedExamples.length === 0
     ) {
 
-        throw new Error(
-            "Not enough training text. Add more text first."
+        document
+            .getElementById(
+                "trainStatus"
+            )
+            .innerHTML =
+            '<span class="bad">' +
+            "Add training data first." +
+            "</span>";
+
+        return;
+
+    }
+
+
+    const steps =
+        Number(
+            document
+                .getElementById(
+                    "trainingSteps"
+                )
+                .value
         );
 
-    }
 
-
-    const sequences = [];
-
-
-    /*
-     * Create many overlapping examples.
-     */
-
-    const maxStart =
-        allBytes.length -
-        CONFIG.trainingSequence -
-        1;
-
-
-    for (
-        let start = 0;
-        start <= maxStart;
-        start++
-    ) {
-
-        const input =
-            allBytes.slice(
-                start,
-                start +
-                CONFIG.trainingSequence
-            );
-
-
-        const target =
-            allBytes.slice(
-                start + 1,
-                start +
-                CONFIG.trainingSequence +
-                1
-            );
-
-
-        sequences.push({
-            input,
-            target
-        });
-
-    }
-
-
-    return sequences;
-
-}
-
-
-/* ============================================================
-   TRAIN
-   ============================================================ */
-
-document.getElementById(
-    "trainButton"
-).addEventListener(
-    "click",
-    async () => {
-
-        const password =
-            prompt(
-                "Enter the Train Model password:"
-            );
-
-
-        if (
-            password !==
-            CONFIG.password
-        ) {
-
-            alert(
-                "Incorrect password."
-            );
-
-            return;
-
-        }
-
-
-        if (
-            trainingExamples.length === 0
-        ) {
-
-            alert(
-                "Add training data first."
-            );
-
-            return;
-
-        }
-
-
-        const trainButton =
-            document.getElementById(
+    const button =
+        document
+            .getElementById(
                 "trainButton"
             );
 
 
-        trainButton.disabled =
-            true;
+    button.disabled = true;
 
 
-        trainingLog.textContent =
-            "";
+    lossHistory = [];
 
 
-        try {
+    document
+        .getElementById(
+            "trainStatus"
+        )
+        .textContent =
+        "Preparing training...";
 
-            log(
-                "Preparing training data..."
+
+    document
+        .getElementById(
+            "learningVerdict"
+        )
+        .textContent =
+        "Measuring how the model learns...";
+
+
+    try {
+
+        await createModel();
+
+
+        /*
+         * Measure the model BEFORE training.
+         */
+
+        const initialSequence =
+            makeTrainingSequence();
+
+
+        const initialLossTensor =
+            calculateLoss(
+                initialSequence
             );
 
 
-            const sequences =
-                buildTrainingSequences();
+        const initialLoss =
+            initialLossTensor.dataSync()[0];
 
 
-            log(
-                `Created ${sequences.length} training sequences.`
-            );
+        initialLossTensor.dispose();
 
 
-            const optimizer =
-                tf.train.adam(
-                    CONFIG.learningRate
+        document
+            .getElementById(
+                "startLoss"
+            )
+            .textContent =
+            initialLoss.toFixed(4);
+
+
+        document
+            .getElementById(
+                "currentLoss"
+            )
+            .textContent =
+            initialLoss.toFixed(4);
+
+
+        lossHistory.push(
+            initialLoss
+        );
+
+
+        drawLossGraph();
+
+
+        /*
+         * Now actually train.
+         */
+
+        for (
+            let step = 1;
+            step <= steps;
+            step++
+        ) {
+
+            const sequence =
+                makeTrainingSequence();
+
+
+            const loss =
+                trainOneStep(
+                    sequence
                 );
 
 
-            const steps =
-                Number(
-                    document.getElementById(
-                        "stepsSelect"
-                    ).value
-                );
-
-
-            log(
-                `Starting ${steps} training steps...`
+            lossHistory.push(
+                loss
             );
 
 
-            for (
-                let step = 0;
-                step < steps;
-                step++
+            document
+                .getElementById(
+                    "currentLoss"
+                )
+                .textContent =
+                loss.toFixed(4);
+
+
+            const change =
+                loss - initialLoss;
+
+
+            document
+                .getElementById(
+                    "lossChange"
+                )
+                .textContent =
+                change.toFixed(4);
+
+
+            document
+                .getElementById(
+                    "trainStatus"
+                )
+                .textContent =
+                "Training step " +
+                step +
+                " / " +
+                steps +
+                "\n" +
+                "Current loss: " +
+                loss.toFixed(4);
+
+
+            drawLossGraph();
+
+
+            /*
+             * Give the browser a chance to update
+             * the screen and remain responsive.
+             */
+
+            if (
+                step % 2 === 0
             ) {
-
-                const sequence =
-                    sequences[
-                        step %
-                        sequences.length
-                    ];
-
-
-                const input =
-                    tf.tensor1d(
-                        sequence.input,
-                        "int32"
-                    );
-
-
-                const target =
-                    tf.tensor1d(
-                        sequence.target,
-                        "int32"
-                    );
-
-
-                let lossValue;
-
-
-                const lossTensor =
-                    optimizer.minimize(
-                        () => {
-
-                            const logits =
-                                model.forward(
-                                    sequence.input
-                                );
-
-
-                            const targetOneHot =
-                                tf.oneHot(
-                                    target,
-                                    CONFIG.vocabSize
-                                );
-
-
-                            const loss =
-                                tf.losses.softmaxCrossEntropy(
-                                    targetOneHot,
-                                    logits
-                                );
-
-
-                            return tf.mean(
-                                loss
-                            );
-
-                        },
-                        true,
-                        model.weights
-                    );
-
-
-                lossValue =
-                    await lossTensor.data();
-
-
-                lossTensor.dispose();
-                input.dispose();
-                target.dispose();
-
-
-                if (
-                    step === 0 ||
-                    (step + 1) % 5 === 0 ||
-                    step === steps - 1
-                ) {
-
-                    log(
-                        `Step ${step + 1}/${steps} — loss: ${lossValue[0].toFixed(5)}`
-                    );
-
-                }
-
-
-                /*
-                 * Let the browser breathe.
-                 */
 
                 await new Promise(
                     resolve =>
@@ -1750,670 +1882,303 @@ document.getElementById(
 
             }
 
-
-            optimizer.dispose();
-
-
-            localStorage.setItem(
-                "esplm_model_trained",
-                "true"
-            );
+        }
 
 
-            document.getElementById(
-                "trainingStatus"
-            ).textContent =
-                `Training complete. Neural network weights have been updated. ${model.parameterCount().toLocaleString()} trainable parameters.`;
+        const finalLoss =
+            lossHistory[
+                lossHistory.length - 1
+            ];
 
 
-            log(
-                "Training complete — neural network weights have been updated."
-            );
+        const difference =
+            finalLoss -
+            initialLoss;
 
 
-        } catch (error) {
-
-            console.error(error);
-
-
-            document.getElementById(
-                "trainingStatus"
-            ).textContent =
-                "Training failed: " +
-                error.message;
+        document
+            .getElementById(
+                "currentLoss"
+            )
+            .textContent =
+            finalLoss.toFixed(4);
 
 
-            log(
-                "ERROR: " +
-                error.message
-            );
+        document
+            .getElementById(
+                "lossChange"
+            )
+            .textContent =
+            difference.toFixed(4);
 
 
-        } finally {
+        /*
+         * Interpret the result conservatively.
+         */
 
-            trainButton.disabled =
-                false;
+        if (
+            finalLoss <
+            initialLoss * 0.95
+        ) {
+
+            document
+                .getElementById(
+                    "learningVerdict"
+                )
+                .innerHTML =
+                '<span class="good">' +
+                "GOOD SIGN: The training loss decreased " +
+                "by at least 5%. The neural network is " +
+                "responding to the training data." +
+                "</span>" +
+                "<br><br>" +
+                "This does NOT mean the model can speak " +
+                "well yet. It means training is producing " +
+                "a measurable learning signal.";
+
+        }
+        else if (
+            finalLoss <
+            initialLoss
+        ) {
+
+            document
+                .getElementById(
+                    "learningVerdict"
+                )
+                .innerHTML =
+                '<span class="warning">' +
+                "The loss decreased, but only a little. " +
+                "The network is learning something, but " +
+                "we should improve the training setup " +
+                "before doing very long runs." +
+                "</span>";
+
+        }
+        else {
+
+            document
+                .getElementById(
+                    "learningVerdict"
+                )
+                .innerHTML =
+                '<span class="bad">' +
+                "WARNING: The loss did not decrease. " +
+                "Do NOT spend hours training this version " +
+                "yet. We need to investigate the training " +
+                "setup first." +
+                "</span>";
 
         }
 
+
+        document
+            .getElementById(
+                "trainStatus"
+            )
+            .textContent =
+            "Training finished.\n\n" +
+            "Starting loss: " +
+            initialLoss.toFixed(4) +
+            "\n" +
+            "Final loss: " +
+            finalLoss.toFixed(4);
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        document
+            .getElementById(
+                "trainStatus"
+            )
+            .innerHTML =
+            '<span class="bad">' +
+            "Training failed:\n" +
+            error.message +
+            "</span>";
+
     }
-);
+
+
+    button.disabled = false;
+
+}
 
 
 /* ============================================================
    BROWSER GENERATION
    ============================================================ */
 
-document.getElementById(
-    "generateButton"
-).addEventListener(
-    "click",
-    async () => {
-
-        const button =
-            document.getElementById(
-                "generateButton"
-            );
-
-
-        const prompt =
-            document.getElementById(
-                "browserPrompt"
-            ).value;
-
-
-        if (!prompt.trim()) {
-
-            alert(
-                "Enter a prompt first."
-            );
-
-            return;
-
-        }
-
-
-        button.disabled =
-            true;
-
-
-        const result =
-            document.getElementById(
-                "browserResult"
-            );
-
-
-        result.textContent =
-            "Generating...";
-
-
-        try {
-
-            const output =
-                await model.generate(
-                    prompt,
-                    64
-                );
-
-
-            result.textContent =
-                output;
-
-
-        } catch (error) {
-
-            console.error(error);
-
-
-            result.textContent =
-                "Generation failed: " +
-                error.message;
-
-        }
-
-
-        button.disabled =
-            false;
-
-    }
-);
-
-
-/* ============================================================
-   MODEL EXPORT
-   ============================================================ */
-
-function writeUint16(
-    view,
-    offset,
-    value
-) {
-
-    view.setUint16(
-        offset,
-        value,
-        true
-    );
-
-    return offset + 2;
-
-}
-
-
-function writeUint32(
-    view,
-    offset,
-    value
-) {
-
-    view.setUint32(
-        offset,
-        value,
-        true
-    );
-
-    return offset + 4;
-
-}
-
-
-function tensorBytes(
-    tensor
-) {
-
-    return tensor.data();
-
-}
-
-
-async function exportModel() {
+async function browserGenerate() {
 
     if (!model) {
 
-        throw new Error(
-            "No model exists."
-        );
+        document
+            .getElementById(
+                "browserOutput"
+            )
+            .textContent =
+            "The model has not been created yet.";
+
+        return;
 
     }
 
 
-    const tensors = [];
+    const prompt =
+        document
+            .getElementById(
+                "browserPrompt"
+            )
+            .value;
 
 
-    tensors.push({
-        name: "embedding",
-        tensor: model.embedding
-    });
-
-
-    tensors.push({
-        name: "positionEmbedding",
-        tensor: model.positionEmbedding
-    });
-
-
-    model.layers.forEach(
-        (layer, index) => {
-
-            tensors.push(
-                {
-                    name:
-                        `layer${index}_wq`,
-                    tensor:
-                        layer.wq
-                },
-                {
-                    name:
-                        `layer${index}_bq`,
-                    tensor:
-                        layer.bq
-                },
-                {
-                    name:
-                        `layer${index}_wk`,
-                    tensor:
-                        layer.wk
-                },
-                {
-                    name:
-                        `layer${index}_bk`,
-                    tensor:
-                        layer.bk
-                },
-                {
-                    name:
-                        `layer${index}_wv`,
-                    tensor:
-                        layer.wv
-                },
-                {
-                    name:
-                        `layer${index}_bv`,
-                    tensor:
-                        layer.bv
-                },
-                {
-                    name:
-                        `layer${index}_wo`,
-                    tensor:
-                        layer.wo
-                },
-                {
-                    name:
-                        `layer${index}_bo`,
-                    tensor:
-                        layer.bo
-                },
-                {
-                    name:
-                        `layer${index}_norm1Gamma`,
-                    tensor:
-                        layer.norm1Gamma
-                },
-                {
-                    name:
-                        `layer${index}_norm1Beta`,
-                    tensor:
-                        layer.norm1Beta
-                },
-                {
-                    name:
-                        `layer${index}_ff1`,
-                    tensor:
-                        layer.ff1
-                },
-                {
-                    name:
-                        `layer${index}_ff1Bias`,
-                    tensor:
-                        layer.ff1Bias
-                },
-                {
-                    name:
-                        `layer${index}_ff2`,
-                    tensor:
-                        layer.ff2
-                },
-                {
-                    name:
-                        `layer${index}_ff2Bias`,
-                    tensor:
-                        layer.ff2Bias
-                },
-                {
-                    name:
-                        `layer${index}_norm2Gamma`,
-                    tensor:
-                        layer.norm2Gamma
-                },
-                {
-                    name:
-                        `layer${index}_norm2Beta`,
-                    tensor:
-                        layer.norm2Beta
-                }
-            );
-
-        }
-    );
-
-
-    tensors.push(
-        {
-            name: "finalGamma",
-            tensor: model.finalGamma
-        },
-        {
-            name: "finalBeta",
-            tensor: model.finalBeta
-        }
-    );
-
-
-    const encodedTensors = [];
-
-
-    let totalBytes =
-        40;
-
-
-    for (
-        const item
-        of tensors
-    ) {
-
-        const data =
-            await item.tensor.data();
-
-
-        const nameBytes =
-            new TextEncoder().encode(
-                item.name
-            );
-
-
-        totalBytes +=
-            2 +
-            nameBytes.length +
-            2 +
-            item.tensor.shape.length * 4 +
-            4 +
-            data.length * 4;
-
-
-        encodedTensors.push({
-            ...item,
-            data,
-            nameBytes
-        });
-
+    if (!prompt) {
+        return;
     }
 
 
-    const buffer =
-        new ArrayBuffer(
-            totalBytes
+    const output =
+        await generateText(
+            prompt,
+            64
         );
 
 
-    const view =
-        new DataView(
-            buffer
-        );
-
-
-    const bytes =
-        new Uint8Array(
-            buffer
-        );
-
-
-    let offset = 0;
-
-
-    /*
-     * Magic: ESLM
-     */
-
-    bytes[offset++] = 0x45;
-    bytes[offset++] = 0x53;
-    bytes[offset++] = 0x4c;
-    bytes[offset++] = 0x4d;
-
-
-    /*
-     * Version 3.
-     *
-     * Version 3 includes positional embeddings.
-     */
-
-    offset =
-        writeUint32(
-            view,
-            offset,
-            3
-        );
-
-
-    offset =
-        writeUint32(
-            view,
-            offset,
-            CONFIG.vocabSize
-        );
-
-
-    offset =
-        writeUint32(
-            view,
-            offset,
-            CONFIG.embedDim
-        );
-
-
-    offset =
-        writeUint32(
-            view,
-            offset,
-            CONFIG.numLayers
-        );
-
-
-    offset =
-        writeUint32(
-            view,
-            offset,
-            CONFIG.numHeads
-        );
-
-
-    offset =
-        writeUint32(
-            view,
-            offset,
-            CONFIG.ffnDim
-        );
-
-
-    offset =
-        writeUint32(
-            view,
-            offset,
-            CONFIG.contextSize
-        );
-
-
-    offset =
-        writeUint32(
-            view,
-            offset,
-            CONFIG.trainingSequence
-        );
-
-
-    offset =
-        writeUint32(
-            view,
-            offset,
-            model.parameterCount()
-        );
-
-
-    offset =
-        writeUint32(
-            view,
-            offset,
-            tensors.length
-        );
-
-
-    for (
-        const item
-        of encodedTensors
-    ) {
-
-        offset =
-            writeUint16(
-                view,
-                offset,
-                item.nameBytes.length
-            );
-
-
-        bytes.set(
-            item.nameBytes,
-            offset
-        );
-
-
-        offset +=
-            item.nameBytes.length;
-
-
-        view.setUint8(
-            offset++,
-            item.tensor.shape.length
-        );
-
-
-        view.setUint8(
-            offset++,
-            0
-        );
-
-
-        for (
-            const dimension
-            of item.tensor.shape
-        ) {
-
-            offset =
-                writeUint32(
-                    view,
-                    offset,
-                    dimension
-                );
-
-        }
-
-
-        offset =
-            writeUint32(
-                view,
-                offset,
-                item.data.length
-            );
-
-
-        const floatView =
-            new Float32Array(
-                buffer,
-                offset,
-                item.data.length
-            );
-
-
-        floatView.set(
-            item.data
-        );
-
-
-        offset +=
-            item.data.length * 4;
-
-    }
-
-
-    return new Blob(
-        [buffer],
-        {
-            type:
-                "application/octet-stream"
-        }
-    );
+    document
+        .getElementById(
+            "browserOutput"
+        )
+        .textContent =
+        output;
 
 }
 
 
-document.getElementById(
-    "exportButton"
-).addEventListener(
-    "click",
-    async () => {
+async function generateText(
+    prompt,
+    maxBytes
+) {
 
-        try {
-
-            const blob =
-                await exportModel();
+    let bytes =
+        encodeText(prompt);
 
 
-            const url =
-                URL.createObjectURL(
-                    blob
-                );
+    for (
+        let i = 0;
+        i < maxBytes;
+        i++
+    ) {
 
-
-            const link =
-                document.createElement(
-                    "a"
-                );
-
-
-            link.href =
-                url;
-
-
-            link.download =
-                "esplm-model.eslm";
-
-
-            link.click();
-
-
-            URL.revokeObjectURL(
-                url
+        const context =
+            bytes.slice(
+                -CONFIG.contextSize
             );
 
 
-            document.getElementById(
-                "exportStatus"
-            ).textContent =
-                `Model exported successfully. ${model.parameterCount().toLocaleString()} parameters.`;
-
-        } catch (error) {
-
-            console.error(error);
+        const input =
+            tf.tensor1d(
+                context,
+                "int32"
+            );
 
 
-            document.getElementById(
-                "exportStatus"
-            ).textContent =
-                "Export failed: " +
-                error.message;
+        const logits =
+            model.forward(
+                input
+            );
+
+
+        const last =
+            logits
+                .slice(
+                    [
+                        logits.shape[0] - 1,
+                        0
+                    ],
+                    [
+                        1,
+                        CONFIG.vocabSize
+                    ]
+                )
+                .squeeze();
+
+
+        const temperature = 0.9;
+
+
+        const probabilities =
+            tf.softmax(
+                tf.div(
+                    last,
+                    temperature
+                )
+            );
+
+
+        const nextTensor =
+            tf.multinomial(
+                probabilities,
+                1
+            );
+
+
+        const nextByte =
+            nextTensor.dataSync()[0];
+
+
+        nextTensor.dispose();
+        probabilities.dispose();
+        last.dispose();
+        logits.dispose();
+        input.dispose();
+
+
+        bytes.push(
+            nextByte
+        );
+
+
+        if (
+            i % 4 === 0
+        ) {
+
+            await new Promise(
+                resolve =>
+                    setTimeout(
+                        resolve,
+                        0
+                    )
+            );
 
         }
 
     }
-);
+
+
+    return decodeBytes(bytes);
+
+}
 
 
 /* ============================================================
-   WEB SERIAL
+   ESP32 SERIAL
    ============================================================ */
 
-let port = null;
-let reader = null;
-let writer = null;
-
-let serialBuffer = "";
-
-let requestCounter = 0;
-
-const pendingChats =
-    new Map();
-
-
-function setConnectionStatus(
-    text
-) {
-
-    document.getElementById(
-        "connectionStatus"
-    ).textContent =
-        text;
-
-}
-
-
-async function connectSerial() {
+async function connectESP32() {
 
     if (
         !("serial" in navigator)
     ) {
 
-        alert(
-            "Web Serial is not supported in this browser."
-        );
+        document
+            .getElementById(
+                "serialStatus"
+            )
+            .textContent =
+            "Web Serial is not supported in this browser.";
 
         return;
 
@@ -2422,46 +2187,43 @@ async function connectSerial() {
 
     try {
 
-        port =
+        serialPort =
             await navigator.serial.requestPort();
 
 
-        await port.open({
+        await serialPort.open({
             baudRate: 115200
         });
 
 
-        writer =
-            port.writable.getWriter();
+        serialWriter =
+            serialPort.writable.getWriter();
 
 
-        reader =
-            port.readable.getReader();
+        serialReader =
+            serialPort.readable.getReader();
 
 
-        document.getElementById(
-            "connectButton"
-        ).disabled = true;
+        document
+            .getElementById(
+                "connectButton"
+            )
+            .disabled = true;
 
 
-        document.getElementById(
-            "disconnectButton"
-        ).disabled = false;
+        document
+            .getElementById(
+                "disconnectButton"
+            )
+            .disabled = false;
 
 
-        document.getElementById(
-            "sendChatButton"
-        ).disabled = false;
-
-
-        document.getElementById(
-            "infoButton"
-        ).disabled = false;
-
-
-        setConnectionStatus(
-            "ESP32: Connected"
-        );
+        document
+            .getElementById(
+                "serialStatus"
+            )
+            .textContent =
+            "ESP32: Connected";
 
 
         readSerialLoop();
@@ -2469,81 +2231,48 @@ async function connectSerial() {
 
     } catch (error) {
 
-        console.error(error);
-
-        setConnectionStatus(
-            "ESP32: Connection failed — " +
-            error.message
-        );
+        document
+            .getElementById(
+                "serialStatus"
+            )
+            .textContent =
+            "Connection failed: " +
+            error.message;
 
     }
 
 }
 
 
-async function readSerialLoop() {
-
-    const decoder =
-        new TextDecoder();
-
+async function disconnectESP32() {
 
     try {
 
-        while (true) {
+        if (serialReader) {
 
-            const {
-                value,
-                done
-            } =
-                await reader.read();
+            await serialReader.cancel();
 
+            serialReader.releaseLock();
 
-            if (done) {
-                break;
-            }
+            serialReader = null;
+
+        }
 
 
-            serialBuffer +=
-                decoder.decode(
-                    value,
-                    {
-                        stream: true
-                    }
-                );
+        if (serialWriter) {
+
+            serialWriter.releaseLock();
+
+            serialWriter = null;
+
+        }
 
 
-            let newline;
+        if (serialPort) {
 
+            await serialPort.close();
 
-            while (
-                (newline =
-                    serialBuffer.indexOf("\n"))
-                >= 0
-            ) {
-
-                const line =
-                    serialBuffer
-                        .slice(
-                            0,
-                            newline
-                        )
-                        .replace(
-                            /\r$/,
-                            ""
-                        );
-
-
-                serialBuffer =
-                    serialBuffer.slice(
-                        newline + 1
-                    );
-
-
-                handleSerialLine(
-                    line
-                );
-
-            }
+            serialPort = null;
 
         }
 
@@ -2553,12 +2282,238 @@ async function readSerialLoop() {
 
     }
 
+
+    document
+        .getElementById(
+            "connectButton"
+        )
+        .disabled = false;
+
+
+    document
+        .getElementById(
+            "disconnectButton"
+        )
+        .disabled = true;
+
+
+    document
+        .getElementById(
+            "serialStatus"
+        )
+        .textContent =
+        "Not connected.";
+
 }
 
 
-function escapeSerialText(
+async function readSerialLoop() {
+
+    try {
+
+        while (
+            serialReader
+        ) {
+
+            const {
+                value,
+                done
+            } =
+                await serialReader.read();
+
+
+            if (done) {
+                break;
+            }
+
+
+            if (value) {
+
+                serialBuffer +=
+                    new TextDecoder()
+                        .decode(value);
+
+
+                let newline;
+
+
+                while (
+                    (
+                        newline =
+                        serialBuffer.indexOf(
+                            "\n"
+                        )
+                    ) !== -1
+                ) {
+
+                    const line =
+                        serialBuffer
+                            .slice(
+                                0,
+                                newline
+                            )
+                            .trim();
+
+
+                    serialBuffer =
+                        serialBuffer.slice(
+                            newline + 1
+                        );
+
+
+                    handleSerialLine(
+                        line
+                    );
+
+                }
+
+            }
+
+        }
+
+    } catch (error) {
+
+        console.error(
+            "Serial read error:",
+            error
+        );
+
+    }
+
+}
+
+
+async function sendSerial(
     text
 ) {
+
+    if (
+        !serialWriter
+    ) {
+
+        throw new Error(
+            "ESP32 is not connected."
+        );
+
+    }
+
+
+    const data =
+        new TextEncoder()
+            .encode(
+                text + "\n"
+            );
+
+
+    await serialWriter.write(
+        data
+    );
+
+}
+
+
+function handleSerialLine(line) {
+
+    console.log(
+        "ESP32:",
+        line
+    );
+
+
+    if (
+        line.startsWith(
+            "READY|"
+        )
+    ) {
+
+        document
+            .getElementById(
+                "serialStatus"
+            )
+            .textContent =
+            "ESP32: Connected\n" +
+            line;
+
+    }
+
+}
+
+
+/* ============================================================
+   CHAT THROUGH ESP32
+   ============================================================ */
+
+async function sendChat() {
+
+    const prompt =
+        document
+            .getElementById(
+                "chatInput"
+            )
+            .value
+            .trim();
+
+
+    if (!prompt) {
+        return;
+    }
+
+
+    if (!serialWriter) {
+
+        document
+            .getElementById(
+                "chatOutput"
+            )
+            .textContent =
+            "Connect the ESP32 first.";
+
+        return;
+
+    }
+
+
+    const id =
+        String(
+            ++requestCounter
+        );
+
+
+    try {
+
+        await sendSerial(
+            "CHAT|" +
+            id +
+            "|" +
+            escapeProtocolField(
+                prompt
+            )
+        );
+
+
+        document
+            .getElementById(
+                "chatOutput"
+            )
+            .textContent =
+            "Request sent to ESP32...";
+
+
+    } catch (error) {
+
+        document
+            .getElementById(
+                "chatOutput"
+            )
+            .textContent =
+            error.message;
+
+    }
+
+}
+
+
+function escapeProtocolField(text) {
 
     return text
         .replaceAll(
@@ -2581,298 +2536,391 @@ function escapeSerialText(
 }
 
 
-async function sendSerialLine(
-    line
-) {
+/* ============================================================
+   ESP32 INFO
+   ============================================================ */
 
-    if (!writer) {
+async function getESP32Info() {
 
-        throw new Error(
-            "ESP32 is not connected."
-        );
+    if (!serialWriter) {
 
-    }
-
-
-    const data =
-        new TextEncoder().encode(
-            line + "\n"
-        );
-
-
-    await writer.write(
-        data
-    );
-
-}
-
-
-function handleSerialLine(
-    line
-) {
-
-    if (
-        line.startsWith(
-            "CHAT_RESULT|"
-        )
-    ) {
-
-        const parts =
-            line.split("|");
-
-
-        const requestId =
-            parts[1];
-
-
-        const response =
-            parts
-                .slice(2)
-                .join("|")
-                .replaceAll(
-                    "\\n",
-                    "\n"
-                )
-                .replaceAll(
-                    "\\r",
-                    "\r"
-                )
-                .replaceAll(
-                    "\\p",
-                    "|"
-                )
-                .replaceAll(
-                    "\\\\",
-                    "\\"
-                );
-
-
-        document.getElementById(
-            "chatResponse"
-        ).textContent =
-            response;
-
-
-        pendingChats.delete(
-            requestId
-        );
+        document
+            .getElementById(
+                "espInfo"
+            )
+            .textContent =
+            "Connect the ESP32 first.";
 
         return;
 
     }
 
 
-    if (
-        line.startsWith(
-            "INFO|"
-        )
+    await sendSerial(
+        "INFO"
+    );
+
+    await sendSerial(
+        "MODEL_STATUS"
+    );
+
+}
+
+
+/* ============================================================
+   MODEL EXPORT
+   ============================================================ */
+
+function writeUint32(
+    view,
+    offset,
+    value
+) {
+
+    view.setUint32(
+        offset,
+        value,
+        true
+    );
+
+}
+
+
+function writeFloat32Array(
+    view,
+    offset,
+    array
+) {
+
+    for (
+        let i = 0;
+        i < array.length;
+        i++
     ) {
 
-        document.getElementById(
-            "espInfo"
-        ).textContent =
-            line;
-
-        return;
-
-    }
-
-
-    console.log(
-        "ESP32:",
-        line
-    );
-
-}
-
-
-async function disconnectSerial() {
-
-    try {
-
-        if (reader) {
-
-            await reader.cancel();
-
-            reader.releaseLock();
-
-            reader = null;
-
-        }
-
-
-        if (writer) {
-
-            writer.releaseLock();
-
-            writer = null;
-
-        }
-
-
-        if (port) {
-
-            await port.close();
-
-            port = null;
-
-        }
-
-    } catch (error) {
-
-        console.error(error);
-
-    }
-
-
-    document.getElementById(
-        "connectButton"
-    ).disabled = false;
-
-
-    document.getElementById(
-        "disconnectButton"
-    ).disabled = true;
-
-
-    document.getElementById(
-        "sendChatButton"
-    ).disabled = true;
-
-
-    document.getElementById(
-        "infoButton"
-    ).disabled = true;
-
-
-    setConnectionStatus(
-        "ESP32: Not connected"
-    );
-
-}
-
-
-document.getElementById(
-    "connectButton"
-).addEventListener(
-    "click",
-    connectSerial
-);
-
-
-document.getElementById(
-    "disconnectButton"
-).addEventListener(
-    "click",
-    disconnectSerial
-);
-
-
-document.getElementById(
-    "infoButton"
-).addEventListener(
-    "click",
-    async () => {
-
-        try {
-
-            await sendSerialLine(
-                "INFO"
-            );
-
-        } catch (error) {
-
-            alert(
-                error.message
-            );
-
-        }
-
-    }
-);
-
-
-document.getElementById(
-    "sendChatButton"
-).addEventListener(
-    "click",
-    async () => {
-
-        const prompt =
-            document.getElementById(
-                "chatInput"
-            ).value;
-
-
-        if (!prompt.trim()) {
-
-            return;
-
-        }
-
-
-        const requestId =
-            String(
-                ++requestCounter
-            );
-
-
-        document.getElementById(
-            "chatResponse"
-        ).textContent =
-            "Waiting for ESP32...";
-
-
-        pendingChats.set(
-            requestId,
+        view.setFloat32(
+            offset + i * 4,
+            array[i],
             true
         );
 
+    }
 
-        try {
+}
 
-            await sendSerialLine(
-                "CHAT|" +
-                requestId +
-                "|" +
-                escapeSerialText(
-                    prompt
-                )
+
+async function exportModel() {
+
+    if (!model) {
+
+        document
+            .getElementById(
+                "exportStatus"
+            )
+            .textContent =
+            "Create/train the model first.";
+
+        return;
+
+    }
+
+
+    const variables =
+        model.getTrainableVariables();
+
+
+    const tensors = [];
+
+
+    let totalBytes = 40;
+
+
+    for (
+        const variable of variables
+    ) {
+
+        const values =
+            await variable.data();
+
+
+        const shape =
+            variable.shape;
+
+
+        const recordBytes =
+            4 +
+            4 +
+            shape.length * 4 +
+            values.length * 4;
+
+
+        totalBytes +=
+            recordBytes;
+
+
+        tensors.push({
+            shape,
+            values
+        });
+
+    }
+
+
+    const buffer =
+        new ArrayBuffer(
+            totalBytes
+        );
+
+
+    const view =
+        new DataView(
+            buffer
+        );
+
+
+    let offset = 0;
+
+
+    /*
+     * Header
+     */
+
+    writeUint32(
+        view,
+        offset,
+        0x4D4C5045
+    );
+
+    offset += 4;
+
+
+    writeUint32(
+        view,
+        offset,
+        3
+    );
+
+    offset += 4;
+
+
+    writeUint32(
+        view,
+        offset,
+        model.parameterCount()
+    );
+
+    offset += 4;
+
+
+    writeUint32(
+        view,
+        offset,
+        CONFIG.vocabSize
+    );
+
+    offset += 4;
+
+
+    writeUint32(
+        view,
+        offset,
+        CONFIG.embedDim
+    );
+
+    offset += 4;
+
+
+    writeUint32(
+        view,
+        offset,
+        CONFIG.numLayers
+    );
+
+    offset += 4;
+
+
+    writeUint32(
+        view,
+        offset,
+        CONFIG.numHeads
+    );
+
+    offset += 4;
+
+
+    writeUint32(
+        view,
+        offset,
+        CONFIG.ffnDim
+    );
+
+    offset += 4;
+
+
+    writeUint32(
+        view,
+        offset,
+        CONFIG.contextSize
+    );
+
+    offset += 4;
+
+
+    writeUint32(
+        view,
+        offset,
+        tensors.length
+    );
+
+    offset += 4;
+
+
+    /*
+     * Tensor records
+     */
+
+    for (
+        const tensor of tensors
+    ) {
+
+        writeUint32(
+            view,
+            offset,
+            tensor.shape.length
+        );
+
+        offset += 4;
+
+
+        writeUint32(
+            view,
+            offset,
+            tensor.values.length
+        );
+
+        offset += 4;
+
+
+        for (
+            const dimension of
+            tensor.shape
+        ) {
+
+            writeUint32(
+                view,
+                offset,
+                dimension
             );
 
-        } catch (error) {
-
-            document.getElementById(
-                "chatResponse"
-            ).textContent =
-                error.message;
+            offset += 4;
 
         }
 
+
+        writeFloat32Array(
+            view,
+            offset,
+            tensor.values
+        );
+
+
+        offset +=
+            tensor.values.length * 4;
+
     }
-);
+
+
+    const blob =
+        new Blob(
+            [buffer],
+            {
+                type:
+                    "application/octet-stream"
+            }
+        );
+
+
+    const url =
+        URL.createObjectURL(
+            blob
+        );
+
+
+    const link =
+        document.createElement(
+            "a"
+        );
+
+
+    link.href = url;
+
+    link.download =
+        "esplm-model.eslm";
+
+
+    link.click();
+
+
+    URL.revokeObjectURL(
+        url
+    );
+
+
+    document
+        .getElementById(
+            "exportStatus"
+        )
+        .textContent =
+        "Model exported successfully.";
+
+}
 
 
 /* ============================================================
    STARTUP
    ============================================================ */
 
-document.getElementById(
-    "trainingStatus"
-).textContent =
-    `Model ready. ${model.parameterCount().toLocaleString()} trainable parameters.`;
+async function startup() {
 
-log(
-    "ESPLM browser model initialized."
-);
+    loadTrainingData();
 
-log(
-    "Learned positional embeddings are enabled."
-);
+    updateExampleCount();
 
-log(
-    `Trainable parameters: ${model.parameterCount().toLocaleString()}`
-);
+
+    document
+        .getElementById(
+            "trainingStatus"
+        )
+        .textContent =
+        "Loading TensorFlow.js...";
+
+
+    try {
+
+        await tf.ready();
+
+        await createModel();
+
+    } catch (error) {
+
+        console.error(error);
+
+        document
+            .getElementById(
+                "trainingStatus"
+            )
+            .innerHTML =
+            '<span class="bad">' +
+            "Could not initialize TensorFlow.js: " +
+            error.message +
+            "</span>";
+
+    }
+
+}
+
+
+startup();
 
 </script>
 
