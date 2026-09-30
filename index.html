@@ -153,10 +153,26 @@ textarea {
     color: #9da7b8;
     font-size: 13px;
 }
+
+#buildVersion {
+    position: fixed;
+    right: 10px;
+    bottom: 10px;
+    z-index: 1000;
+    padding: 4px 7px;
+    border: 1px solid #465168;
+    border-radius: 6px;
+    background: rgba(15, 18, 24, 0.88);
+    color: #aeb6c5;
+    font-size: 11px;
+    line-height: 1.2;
+    pointer-events: none;
+}
 </style>
 </head>
 
 <body>
+<div id="buildVersion" aria-label="ESPLM page build 4">ESPLM build 4</div>
 
 <header>
     <h1>ESPLM</h1>
@@ -1489,28 +1505,13 @@ function makeTrainingSequence() {
 
 
 /* =========================================================
-   FIXED MANUAL SPARSE CROSS ENTROPY
+   MANUAL SPARSE CROSS-ENTROPY LOSS
    ========================================================= */
 
 /*
- * We do NOT use:
- *
- * tf.losses.sparseCategoricalCrossentropy
- *
- * because that function is not available in the
- * TensorFlow.js build being used here.
- *
- * Instead:
- *
- * logits
- *   -> logSoftmax
- *   -> one-hot target
- *   -> multiply
- *   -> sum
- *   -> negative mean
- *
- * This is mathematically the same sparse
- * categorical cross-entropy calculation.
+ * Compute negative log-likelihood from logits using
+ * logSoftmax and one-hot targets. This avoids depending
+ * on optional loss helpers in the TensorFlow.js build.
  */
 
 function sparseCrossEntropy(
