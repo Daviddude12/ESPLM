@@ -172,7 +172,7 @@ textarea {
 </head>
 
 <body>
-<div id="buildVersion" aria-label="Mino AI page build 7">Mino build 7</div>
+<div id="buildVersion" aria-label="Mino AI page build 11">Mino build 11</div>
 
 <header>
     <h1>Mino AI</h1>
@@ -395,7 +395,15 @@ textarea {
             </option>
 
             <option value="250">
-                250 steps
+                250 steps — short run
+            </option>
+
+            <option value="500">
+                500 steps
+            </option>
+
+            <option value="1000">
+                1,000 steps — longer run
             </option>
 
         </select>
@@ -463,25 +471,45 @@ textarea {
 
     <div class="card">
 
-        <h2>Test Mino</h2>
+        <h2>Talk to Mino</h2>
 
         <p class="small">
-            This tests the neural network directly in the browser.
-            It does not use the ESP32.
+            This tests Mino's own neural model, trained from scratch on examples you provide. Replies may still be rough while he learns. This browser test does not use the ESP32.
         </p>
 
         <input
             id="browserPrompt"
-            placeholder="Enter a prompt that matches the examples you trained Mino on">
+            placeholder="Type a message for Mino">
 
         <button onclick="browserGenerate()">
-            Generate
+            Generate Mino's Reply
         </button>
 
         <div
             id="browserOutput"
             class="chatMessage">
             No generation yet.
+        </div>
+
+    </div>
+
+
+    <div class="card">
+
+        <h2>Guardrail Preview — Same Message</h2>
+
+        <p class="small">
+            This checks Mino's programmed focus and style rules using the same message above. It is a separate preview, not the neural model's reply, and it adds no training examples.
+        </p>
+
+        <button onclick="previewMinoGuardrails()">
+            Check Guardrails
+        </button>
+
+        <div
+            id="guardrailOutput"
+            class="chatMessage">
+            Enter a message in the Talk to Mino box above, then check the guardrails.
         </div>
 
     </div>
@@ -519,7 +547,7 @@ textarea {
 
 const CONFIG = {
 
-    vocabSize: 256,
+    vocabSize: 96,
 
     embedDim: 64,
 
@@ -597,25 +625,28 @@ function showTab(id) {
 
 function encodeText(text) {
 
-    const bytes =
-        new TextEncoder().encode(text);
+    const normalized = String(text)
+        .replace(/\r\n?/g, "\n")
+        .replace(/[“”]/g, '"')
+        .replace(/[‘’]/g, "'")
+        .replace(/[—–]/g, "-")
+        .replace(/…/g, "...");
 
-    return Array.from(bytes);
-
+    return Array.from(normalized, character => {
+        if (character === "\n") return 95;
+        const code = character.charCodeAt(0);
+        return code >= 32 && code <= 126 ? code - 32 : 31;
+    });
 }
 
 
 function decodeBytes(bytes) {
 
-    return new TextDecoder(
-        "utf-8",
-        {
-            fatal: false
-        }
-    ).decode(
-        new Uint8Array(bytes)
-    );
-
+    return Array.from(bytes, token => {
+        if (token === 95) return "\n";
+        if (token >= 0 && token <= 94) return String.fromCharCode(token + 32);
+        return "?";
+    }).join("");
 }
 
 
@@ -1338,7 +1369,7 @@ async function createModel() {
    MODEL WEIGHT STORAGE
    ========================================================= */
 
-const MODEL_STORAGE_KEY = "mino_model_weights_v2";
+const MODEL_STORAGE_KEY = "mino_model_weights_v3";
 
 function modelArchitectureSignature() {
     return JSON.stringify({
@@ -1506,6 +1537,7 @@ async function resetWeightsKeepExamples(message) {
 
     try {
         localStorage.removeItem(MODEL_STORAGE_KEY);
+        localStorage.removeItem("mino_model_weights_v2");
         localStorage.removeItem("esplm_model_weights_v1");
         localStorage.removeItem("mino_personality_v1");
         hasTrainedWeights = false;
@@ -2475,80 +2507,125 @@ async function trainModel() {
    ========================================================= */
 
 async function browserGenerate() {
+    const output = document.getElementById("browserOutput");
+    const userPrompt = document.getElementById("browserPrompt").value.trim();
 
-    if (
-        savedExamples.length === 0 &&
-        personalityExamples.length === 0
-    ) {
-
-        document
-            .getElementById("browserOutput")
-            .textContent =
-            "Mino has no user-provided training examples yet. Add your own examples and train him first.";
-
+    if (!userPrompt) {
+        output.textContent = "Type a message for Mino first.";
         return;
-
     }
 
-
-    if (!hasTrainedWeights) {
-
-        document
-            .getElementById("browserOutput")
-            .textContent =
-            "Mino has not been trained yet. Add your own examples and train him first.";
-
+    if (savedExamples.length === 0 && personalityExamples.length === 0) {
+        output.textContent = "Mino needs examples you wrote before he can train. Add User: and Mino: conversation examples, then train him.";
         return;
-
     }
 
-    if (!model) {
-
-        document
-            .getElementById(
-                "browserOutput"
-            )
-            .textContent =
-            "The model has not been created yet.";
-
+    if (!model || !hasTrainedWeights) {
+        output.textContent = "Train Mino with your examples first. His new text model starts from random weights.";
         return;
-
     }
 
+    const formattedPrompt = decodeBytes(
+        encodeText("User: " + userPrompt + "\nMino:")
+    );
+    output.textContent = "Mino is thinking...";
 
-    const prompt =
-        document
-            .getElementById(
-                "browserPrompt"
-            )
-            .value;
+    try {
+        const generated = await generateText(formattedPrompt, 96);
+        const reply = generated
+            .slice(formattedPrompt.length)
+            .split(/\n(?:User|Mino):/i)[0]
+            .trim();
+        output.textContent = reply || "Mino did not produce a reply this time. Try training on more examples of this kind of conversation.";
+    } catch (error) {
+        console.error("Mino generation failed:", error);
+        output.textContent = "Mino could not generate a reply: " + error.message;
+    }
+}
 
+function previewMinoGuardrails() {
+    const prompt = document.getElementById("browserPrompt").value.trim();
+    const output = document.getElementById("guardrailOutput");
 
     if (!prompt) {
+        output.textContent = "Type a message in the Talk to Mino box first.";
         return;
     }
 
+    const text = prompt.toLowerCase();
+    const urgentWords = [
+        "suicide", "kill myself", "end my life", "hurt myself",
+        "self harm", "self-harm", "want to die"
+    ];
 
-    const output =
-        await generateText(
-            prompt,
-            64
-        );
+    if (urgentWords.some(word => text.includes(word))) {
+        output.textContent = "I'm sorry you're dealing with this. Please tell someone you trust right now. If you're in immediate danger, contact your local emergency service. You deserve help from a real person who can stay with you.";
+        return;
+    }
+
+    const supportWords = [
+        "sad", "upset", "lonely", "rough day", "bad day", "stressed",
+        "nervous", "worried", "overwhelmed", "frustrated", "listen",
+        "mistake", "can't do", "cannot do"
+    ];
+
+    const planningWords = [
+        "plan", "planning", "next step", "where do i start", "what should i do"
+    ];
+
+    const brainstormingWords = [
+        "brainstorm", "idea", "ideas", "project", "create", "build", "design"
+    ];
+
+    if (supportWords.some(word => text.includes(word))) {
+        output.textContent = "I'm here with you. Want to tell me a little more about what's going on, or think through one small next step?";
+        return;
+    }
+
+    if (planningWords.some(word => text.includes(word))) {
+        output.textContent = "We can work it out together. What are you trying to get done? I'll help break it into a first small step.";
+        return;
+    }
+
+    if (brainstormingWords.some(word => text.includes(word))) {
+        output.textContent = "Ooh, let's explore it. What's the goal for your idea, and what should we keep in mind?";
+        return;
+    }
+
+    if (/^(hi|hello|hey|yo)\b/.test(text)) {
+        output.textContent = "Hey! I'm Mino, a tiny, curious ESP32 sidekick. What are you working on?";
+        return;
+    }
+
+    output.textContent = "I'm a small sidekick focused on buddy support and brainstorming. Tell me what's on your mind or an idea you'd like to explore.";
+}
 
 
-    document
-        .getElementById(
-            "browserOutput"
-        )
-        .textContent =
-        output;
+function sampleNextCharacter(logitValues, temperature = 0.65, topK = 8) {
+    const ranked = Array.from(logitValues, (score, id) => ({
+        id,
+        score: score / temperature
+    }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, topK);
 
+    const maxScore = ranked[0].score;
+    const weights = ranked.map(item => Math.exp(item.score - maxScore));
+    const total = weights.reduce((sum, weight) => sum + weight, 0);
+    let pick = Math.random() * total;
+
+    for (let i = 0; i < ranked.length; i++) {
+        pick -= weights[i];
+        if (pick <= 0) return ranked[i].id;
+    }
+
+    return ranked[0].id;
 }
 
 
 async function generateText(
     prompt,
-    maxBytes
+    maxCharacters
 ) {
 
     let bytes =
@@ -2559,7 +2636,7 @@ async function generateText(
 
     for (
         let i = 0;
-        i < maxBytes;
+        i < maxCharacters;
         i++
     ) {
 
@@ -2597,33 +2674,7 @@ async function generateText(
                 .squeeze();
 
 
-        const temperature =
-            0.9;
-
-
-        const probabilities =
-            tf.softmax(
-                tf.div(
-                    last,
-                    temperature
-                )
-            );
-
-
-        const nextTensor =
-            tf.multinomial(
-                probabilities,
-                1
-            );
-
-
-        const nextByte =
-            nextTensor.dataSync()[0];
-
-
-        nextTensor.dispose();
-
-        probabilities.dispose();
+        const nextCharacter = sampleNextCharacter(last.dataSync());
 
         last.dispose();
 
@@ -2633,7 +2684,7 @@ async function generateText(
 
 
         bytes.push(
-            nextByte
+            nextCharacter
         );
 
 
@@ -3270,13 +3321,13 @@ async function exportModel() {
 
 
     /*
-     * Version 3
+     * Version 4: printable ASCII character tokens
      */
 
     writeUint32(
         view,
         offset,
-        3
+        4
     );
 
     offset += 4;
