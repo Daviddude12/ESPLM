@@ -172,7 +172,7 @@ textarea {
 </head>
 
 <body>
-<div id="buildVersion" aria-label="Mino AI page build 14">Mino build 14</div>
+<div id="buildVersion" aria-label="Mino AI page build 15">Mino build 15</div>
 
 <header>
     <h1>Mino AI</h1>
@@ -372,7 +372,7 @@ textarea {
         <h2>Train Model</h2>
 
         <p class="small">
-            Training uses your own complete conversation pairs. Put each turn on lines beginning with User: and Mino:. No sample conversations are built in. Training clips oversized updates and stops safely if it detects invalid numbers.
+            Training uses your own complete conversation pairs. Put each turn on lines beginning with User: and Mino:. No sample conversations are built in. Training clips oversized updates, skips a very small number of invalid gradient values, and stops safely if too many appear.
         </p>
 
         <label>
@@ -600,6 +600,8 @@ let lossHistory = [];
 const PERSONALITY_STORAGE_KEY = "mino_personality_examples_v1";
 
 let hasTrainedWeights = false;
+
+let skippedGradientValuesThisRun = 0;
 
 
 /* =========================================================
@@ -2012,21 +2014,40 @@ function trainOneStep(
             throw new Error("Training stopped because the loss became invalid (NaN or infinity). The previous good weights will be restored.");
         }
 
-        // Element-wise gradient clipping prevents a large update from
-        // destabilizing the transformer on a small Chromebook/browser run.
+        // Clean isolated invalid gradient values, then clip large updates.
+        // If too many values are invalid, abort and restore the prior weights.
+        let skippedThisStep = 0;
+        let totalGradientValues = 0;
+
         for (const [name, gradient] of Object.entries(gradients.grads)) {
             const values = gradient.dataSync();
+            const safeValues = new Float32Array(values.length);
+            totalGradientValues += values.length;
+
             for (let i = 0; i < values.length; i++) {
-                if (!Number.isFinite(values[i])) {
-                    throw new Error("Training stopped because it produced an invalid gradient. The previous good weights will be restored.");
+                if (Number.isFinite(values[i])) {
+                    safeValues[i] = values[i];
+                } else {
+                    safeValues[i] = 0;
+                    skippedThisStep++;
                 }
             }
+
+            const safeGradient = tf.tensor(safeValues, gradient.shape, "float32");
             clippedGradients[name] = tf.clipByValue(
-                gradient,
+                safeGradient,
                 -CONFIG.gradientClipValue,
                 CONFIG.gradientClipValue
             );
+            safeGradient.dispose();
         }
+
+        const maximumSkippedValues = Math.max(32, Math.floor(totalGradientValues * 0.001));
+        if (skippedThisStep > maximumSkippedValues) {
+            throw new Error("Training stopped because too many gradient values were invalid (" + skippedThisStep + "). The previous good weights will be restored.");
+        }
+
+        skippedGradientValuesThisRun += skippedThisStep;
 
         optimizer.applyGradients(clippedGradients);
 
@@ -2272,6 +2293,7 @@ async function trainModel() {
 
 
     lossHistory = [];
+    skippedGradientValuesThisRun = 0;
 
     let safeWeightSnapshot = [];
     let restoredSafeWeights = false;
@@ -2553,7 +2575,10 @@ async function trainModel() {
             startingLoss.toFixed(5) +
             "\n" +
             "Final diagnostic loss: " +
-            finalLoss.toFixed(5);
+            finalLoss.toFixed(5) +
+            (skippedGradientValuesThisRun > 0
+                ? "\nInvalid gradient values safely replaced with zero: " + skippedGradientValuesThisRun
+                : "\nNo invalid gradient values needed replacement.");
 
 
     } catch (error) {
