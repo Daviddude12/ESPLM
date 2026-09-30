@@ -9,156 +9,150 @@
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
 
 <style>
-    body {
-        font-family: Arial, sans-serif;
-        margin: 0;
-        background: #10131a;
-        color: #f1f1f1;
-    }
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    background: #10131a;
+    color: #f1f1f1;
+}
 
-    header {
-        padding: 20px;
-        background: #171b24;
-        border-bottom: 1px solid #303644;
-    }
+header {
+    padding: 20px;
+    background: #171b24;
+    border-bottom: 1px solid #303644;
+}
 
-    h1 {
-        margin: 0 0 6px 0;
-    }
+h1 {
+    margin: 0 0 6px 0;
+}
 
-    .subtitle {
-        color: #aeb6c5;
-    }
+.subtitle {
+    color: #aeb6c5;
+}
 
-    nav {
-        display: flex;
-        gap: 10px;
-        padding: 12px;
-        background: #151922;
-        border-bottom: 1px solid #303644;
-    }
+nav {
+    display: flex;
+    gap: 10px;
+    padding: 12px;
+    background: #151922;
+    border-bottom: 1px solid #303644;
+}
 
-    button {
-        background: #273142;
-        color: white;
-        border: 1px solid #465168;
-        border-radius: 8px;
-        padding: 10px 15px;
-        cursor: pointer;
-    }
+button {
+    background: #273142;
+    color: white;
+    border: 1px solid #465168;
+    border-radius: 8px;
+    padding: 10px 15px;
+    cursor: pointer;
+}
 
-    button:hover {
-        background: #334056;
-    }
+button:hover {
+    background: #334056;
+}
 
-    button:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
 
-    .tab {
-        display: none;
-        padding: 20px;
-        max-width: 1000px;
-        margin: auto;
-    }
+.tab {
+    display: none;
+    padding: 20px;
+    max-width: 1000px;
+    margin: auto;
+}
 
-    .tab.active {
-        display: block;
-    }
+.tab.active {
+    display: block;
+}
 
-    .card {
-        background: #181d27;
-        border: 1px solid #303644;
-        border-radius: 12px;
-        padding: 18px;
-        margin-bottom: 18px;
-    }
+.card {
+    background: #181d27;
+    border: 1px solid #303644;
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 18px;
+}
 
-    textarea,
-    input,
-    select {
-        width: 100%;
-        box-sizing: border-box;
-        background: #0f1218;
-        color: white;
-        border: 1px solid #3b4558;
-        border-radius: 8px;
-        padding: 10px;
-        margin: 8px 0;
-    }
+textarea,
+input,
+select {
+    width: 100%;
+    box-sizing: border-box;
+    background: #0f1218;
+    color: white;
+    border: 1px solid #3b4558;
+    border-radius: 8px;
+    padding: 10px;
+    margin: 8px 0;
+}
 
-    textarea {
-        min-height: 180px;
-        resize: vertical;
-    }
+textarea {
+    min-height: 180px;
+    resize: vertical;
+}
 
-    .row {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        align-items: center;
-    }
+.row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+}
 
-    .status {
-        padding: 12px;
-        border-radius: 8px;
-        background: #0f1218;
-        border: 1px solid #303644;
-        white-space: pre-wrap;
-        margin-top: 10px;
-    }
+.status {
+    padding: 12px;
+    border-radius: 8px;
+    background: #0f1218;
+    border: 1px solid #303644;
+    white-space: pre-wrap;
+    margin-top: 10px;
+}
 
-    .good {
-        color: #7ee787;
-    }
+.good {
+    color: #7ee787;
+}
 
-    .warning {
-        color: #ffd166;
-    }
+.warning {
+    color: #ffd166;
+}
 
-    .bad {
-        color: #ff7b72;
-    }
+.bad {
+    color: #ff7b72;
+}
 
-    .metric {
-        font-size: 18px;
-        margin: 8px 0;
-    }
+.metric {
+    font-size: 18px;
+    margin: 8px 0;
+}
 
-    .metric strong {
-        color: #7ee787;
-    }
+.metric strong {
+    color: #7ee787;
+}
 
-    #lossCanvas {
-        width: 100%;
-        max-width: 900px;
-        height: 250px;
-        background: #0d1016;
-        border: 1px solid #303644;
-        border-radius: 8px;
-        margin-top: 12px;
-    }
+#lossCanvas {
+    width: 100%;
+    max-width: 900px;
+    height: 250px;
+    background: #0d1016;
+    border: 1px solid #303644;
+    border-radius: 8px;
+    margin-top: 12px;
+}
 
-    .chatMessage {
-        background: #10141c;
-        border: 1px solid #303644;
-        padding: 12px;
-        border-radius: 8px;
-        margin-top: 10px;
-        white-space: pre-wrap;
-    }
+.chatMessage {
+    background: #10141c;
+    border: 1px solid #303644;
+    padding: 12px;
+    border-radius: 8px;
+    margin-top: 10px;
+    white-space: pre-wrap;
+}
 
-    .small {
-        color: #9da7b8;
-        font-size: 13px;
-    }
-
-    code {
-        background: #0b0e13;
-        padding: 2px 5px;
-        border-radius: 4px;
-    }
+.small {
+    color: #9da7b8;
+    font-size: 13px;
+}
 </style>
 </head>
 
@@ -176,49 +170,63 @@
     <button onclick="showTab('labTab')">Lab / Training</button>
 </nav>
 
-<!-- ========================================================= -->
-<!-- CHAT -->
-<!-- ========================================================= -->
+
+<!-- =========================================================
+     CHAT
+     ========================================================= -->
 
 <section id="chatTab" class="tab active">
 
     <div class="card">
+
         <h2>ESP32 Connection</h2>
 
         <div class="row">
-            <button id="connectButton" onclick="connectESP32()">
+
+            <button
+                id="connectButton"
+                onclick="connectESP32()">
                 Connect ESP32
             </button>
 
-            <button id="disconnectButton"
-                    onclick="disconnectESP32()"
-                    disabled>
+            <button
+                id="disconnectButton"
+                onclick="disconnectESP32()"
+                disabled>
                 Disconnect
             </button>
+
         </div>
 
-        <div id="serialStatus" class="status">
+        <div
+            id="serialStatus"
+            class="status">
             Not connected.
         </div>
+
     </div>
+
 
     <div class="card">
 
         <h2>Chat with ESPLM</h2>
 
-        <textarea id="chatInput"
-                  placeholder="Type something..."></textarea>
+        <textarea
+            id="chatInput"
+            placeholder="Type something..."></textarea>
 
         <button onclick="sendChat()">
             Send
         </button>
 
-        <div id="chatOutput"
-             class="chatMessage">
+        <div
+            id="chatOutput"
+            class="chatMessage">
             No response yet.
         </div>
 
     </div>
+
 
     <div class="card">
 
@@ -228,8 +236,9 @@
             Check ESP32
         </button>
 
-        <div id="espInfo"
-             class="status">
+        <div
+            id="espInfo"
+            class="status">
             Not checked yet.
         </div>
 
@@ -238,9 +247,9 @@
 </section>
 
 
-<!-- ========================================================= -->
-<!-- LAB -->
-<!-- ========================================================= -->
+<!-- =========================================================
+     LAB
+     ========================================================= -->
 
 <section id="labTab" class="tab">
 
@@ -248,8 +257,9 @@
 
         <h2>Training Status</h2>
 
-        <div id="trainingStatus"
-             class="status">
+        <div
+            id="trainingStatus"
+            class="status">
             Loading TensorFlow.js...
         </div>
 
@@ -275,22 +285,9 @@
             The model learns byte-by-byte patterns from this text.
         </p>
 
-        <textarea id="trainingText"
-placeholder="Example:
-
-The sky is blue.
-Grass is green.
-Water is wet.
-Fire is hot.
-
-A dog is an animal.
-A cat is an animal.
-
-10 percent of 50 is 5.
-20 percent of 100 is 20.
-
-A hurricane is a powerful tropical storm.
-During dangerous weather, follow official emergency instructions."></textarea>
+        <textarea
+            id="trainingText"
+            placeholder="Enter training text here..."></textarea>
 
         <div class="row">
 
@@ -304,8 +301,9 @@ During dangerous weather, follow official emergency instructions."></textarea>
 
         </div>
 
-        <div id="dataStatus"
-             class="status">
+        <div
+            id="dataStatus"
+            class="status">
             No training data added yet.
         </div>
 
@@ -317,9 +315,9 @@ During dangerous weather, follow official emergency instructions."></textarea>
         <h2>Train Model</h2>
 
         <p class="small">
-            IMPORTANT: For the first test, use only 20 steps.
-            We want to see whether the loss decreases before doing
-            a longer training run.
+            Start with 20 steps. We will check whether the
+            neural network is actually learning before doing
+            longer training runs.
         </p>
 
         <label>
@@ -327,27 +325,46 @@ During dangerous weather, follow official emergency instructions."></textarea>
         </label>
 
         <select id="trainingSteps">
-            <option value="20">20 steps — diagnostic test</option>
-            <option value="50">50 steps</option>
-            <option value="100">100 steps</option>
-            <option value="250">250 steps</option>
+
+            <option value="20">
+                20 steps — diagnostic test
+            </option>
+
+            <option value="50">
+                50 steps
+            </option>
+
+            <option value="100">
+                100 steps
+            </option>
+
+            <option value="250">
+                250 steps
+            </option>
+
         </select>
+
 
         <label>
             Training password
         </label>
 
-        <input id="trainingPassword"
-               type="password"
-               placeholder="Enter training password">
+        <input
+            id="trainingPassword"
+            type="password"
+            placeholder="Enter training password">
 
-        <button id="trainButton"
-                onclick="trainModel()">
+
+        <button
+            id="trainButton"
+            onclick="trainModel()">
             Train Model
         </button>
 
-        <div id="trainStatus"
-             class="status">
+
+        <div
+            id="trainStatus"
+            class="status">
             Waiting for training.
         </div>
 
@@ -373,14 +390,16 @@ During dangerous weather, follow official emergency instructions."></textarea>
             <strong id="lossChange">—</strong>
         </div>
 
-        <div id="learningVerdict"
-             class="status">
+        <div
+            id="learningVerdict"
+            class="status">
             Run a short training test to measure learning.
         </div>
 
-        <canvas id="lossCanvas"
-                width="900"
-                height="250">
+        <canvas
+            id="lossCanvas"
+            width="900"
+            height="250">
         </canvas>
 
     </div>
@@ -395,15 +414,17 @@ During dangerous weather, follow official emergency instructions."></textarea>
             It does not use the ESP32.
         </p>
 
-        <input id="browserPrompt"
-               value="The sky is">
+        <input
+            id="browserPrompt"
+            value="The sky is">
 
         <button onclick="browserGenerate()">
             Generate
         </button>
 
-        <div id="browserOutput"
-             class="chatMessage">
+        <div
+            id="browserOutput"
+            class="chatMessage">
             No generation yet.
         </div>
 
@@ -416,16 +437,16 @@ During dangerous weather, follow official emergency instructions."></textarea>
 
         <p class="small">
             This exports the current browser neural-network weights.
-            The ESP32 loader is not finished yet, so exporting does
-            not mean the ESP32 can run the model yet.
+            The ESP32 model loader is not finished yet.
         </p>
 
         <button onclick="exportModel()">
             Export .eslm
         </button>
 
-        <div id="exportStatus"
-             class="status">
+        <div
+            id="exportStatus"
+            class="status">
             No model exported yet.
         </div>
 
@@ -436,9 +457,9 @@ During dangerous weather, follow official emergency instructions."></textarea>
 
 <script>
 
-/* ============================================================
-   CONFIGURATION
-   ============================================================ */
+/* =========================================================
+   CONFIG
+   ========================================================= */
 
 const CONFIG = {
 
@@ -463,9 +484,9 @@ const CONFIG = {
 };
 
 
-/* ============================================================
+/* =========================================================
    GLOBAL STATE
-   ============================================================ */
+   ========================================================= */
 
 let model = null;
 
@@ -486,27 +507,31 @@ let savedExamples = [];
 let lossHistory = [];
 
 
-/* ============================================================
+/* =========================================================
    TAB CONTROL
-   ============================================================ */
+   ========================================================= */
 
 function showTab(id) {
 
     document
         .querySelectorAll(".tab")
         .forEach(tab => {
+
             tab.classList.remove("active");
+
         });
+
 
     document
         .getElementById(id)
         .classList.add("active");
+
 }
 
 
-/* ============================================================
-   BYTE TOKENIZER
-   ============================================================ */
+/* =========================================================
+   TOKENIZER
+   ========================================================= */
 
 function encodeText(text) {
 
@@ -520,35 +545,32 @@ function encodeText(text) {
 
 function decodeBytes(bytes) {
 
-    try {
-
-        return new TextDecoder(
-            "utf-8",
-            {
-                fatal: false
-            }
-        ).decode(
-            new Uint8Array(bytes)
-        );
-
-    } catch {
-
-        return "";
-    }
+    return new TextDecoder(
+        "utf-8",
+        {
+            fatal: false
+        }
+    ).decode(
+        new Uint8Array(bytes)
+    );
 
 }
 
 
-/* ============================================================
+/* =========================================================
    TRANSFORMER LAYER
-   ============================================================ */
+   ========================================================= */
 
 class TransformerLayer {
 
-    constructor(index) {
+    constructor() {
 
-        const d = CONFIG.embedDim;
-        const f = CONFIG.ffnDim;
+        const d =
+            CONFIG.embedDim;
+
+        const f =
+            CONFIG.ffnDim;
+
 
         this.qWeight =
             tf.variable(
@@ -559,6 +581,7 @@ class TransformerLayer {
                 )
             );
 
+
         this.kWeight =
             tf.variable(
                 tf.randomNormal(
@@ -567,6 +590,7 @@ class TransformerLayer {
                     Math.sqrt(2 / d)
                 )
             );
+
 
         this.vWeight =
             tf.variable(
@@ -577,6 +601,7 @@ class TransformerLayer {
                 )
             );
 
+
         this.oWeight =
             tf.variable(
                 tf.randomNormal(
@@ -585,6 +610,7 @@ class TransformerLayer {
                     Math.sqrt(2 / d)
                 )
             );
+
 
         this.qBias =
             tf.variable(
@@ -627,6 +653,7 @@ class TransformerLayer {
                 )
             );
 
+
         this.ffn1Bias =
             tf.variable(
                 tf.zeros([f])
@@ -641,6 +668,7 @@ class TransformerLayer {
                     Math.sqrt(2 / f)
                 )
             );
+
 
         this.ffn2Bias =
             tf.variable(
@@ -661,23 +689,40 @@ class TransformerLayer {
     }
 
 
-    layerNorm(x, gamma, beta) {
+    layerNorm(
+        x,
+        gamma,
+        beta
+    ) {
 
         const mean =
-            tf.mean(x, 1, true);
+            tf.mean(
+                x,
+                1,
+                true
+            );
+
+
+        const centered =
+            tf.sub(
+                x,
+                mean
+            );
+
 
         const variance =
             tf.mean(
                 tf.square(
-                    tf.sub(x, mean)
+                    centered
                 ),
                 1,
                 true
             );
 
+
         const normalized =
             tf.div(
-                tf.sub(x, mean),
+                centered,
                 tf.sqrt(
                     tf.add(
                         variance,
@@ -685,6 +730,7 @@ class TransformerLayer {
                     )
                 )
             );
+
 
         return tf.add(
             tf.mul(
@@ -701,7 +747,8 @@ class TransformerLayer {
 
         return tf.tidy(() => {
 
-            const d = CONFIG.embedDim;
+            const d =
+                CONFIG.embedDim;
 
             const headDim =
                 d / CONFIG.numHeads;
@@ -716,6 +763,7 @@ class TransformerLayer {
                     this.qBias
                 );
 
+
             const k =
                 tf.add(
                     tf.matMul(
@@ -724,6 +772,7 @@ class TransformerLayer {
                     ),
                     this.kBias
                 );
+
 
             const v =
                 tf.add(
@@ -747,17 +796,20 @@ class TransformerLayer {
                 const start =
                     h * headDim;
 
+
                 const qh =
                     q.slice(
                         [0, start],
                         [-1, headDim]
                     );
 
+
                 const kh =
                     k.slice(
                         [0, start],
                         [-1, headDim]
                     );
+
 
                 const vh =
                     v.slice(
@@ -773,6 +825,7 @@ class TransformerLayer {
                         false,
                         true
                     );
+
 
                 scores =
                     tf.div(
@@ -795,7 +848,7 @@ class TransformerLayer {
                     );
 
 
-                const neg =
+                const blocked =
                     tf.mul(
                         tf.sub(
                             tf.onesLike(mask),
@@ -808,12 +861,14 @@ class TransformerLayer {
                 scores =
                     tf.add(
                         scores,
-                        neg
+                        blocked
                     );
 
 
                 const weights =
-                    tf.softmax(scores);
+                    tf.softmax(
+                        scores
+                    );
 
 
                 const output =
@@ -823,7 +878,9 @@ class TransformerLayer {
                     );
 
 
-                heads.push(output);
+                heads.push(
+                    output
+                );
 
             }
 
@@ -852,26 +909,28 @@ class TransformerLayer {
 
         return tf.tidy(() => {
 
-            const normalized1 =
+            const norm1 =
                 this.layerNorm(
                     x,
                     this.norm1Gamma,
                     this.norm1Beta
                 );
 
-            const attn =
+
+            const attentionOutput =
                 this.attention(
-                    normalized1
+                    norm1
                 );
+
 
             const residual1 =
                 tf.add(
                     x,
-                    attn
+                    attentionOutput
                 );
 
 
-            const normalized2 =
+            const norm2 =
                 this.layerNorm(
                     residual1,
                     this.norm2Gamma,
@@ -882,7 +941,7 @@ class TransformerLayer {
             const hidden =
                 tf.add(
                     tf.matMul(
-                        normalized2,
+                        norm2,
                         this.ffn1Weight
                     ),
                     this.ffn1Bias
@@ -890,7 +949,9 @@ class TransformerLayer {
 
 
             const activated =
-                tf.relu(hidden);
+                tf.relu(
+                    hidden
+                );
 
 
             const output =
@@ -915,15 +976,17 @@ class TransformerLayer {
 }
 
 
-/* ============================================================
-   MODEL
-   ============================================================ */
+/* =========================================================
+   ESPLM MODEL
+   ========================================================= */
 
 class ESPLMModel {
 
     constructor() {
 
-        const d = CONFIG.embedDim;
+        const d =
+            CONFIG.embedDim;
+
 
         this.tokenEmbedding =
             tf.variable(
@@ -953,6 +1016,7 @@ class ESPLMModel {
 
         this.layers = [];
 
+
         for (
             let i = 0;
             i < CONFIG.numLayers;
@@ -960,7 +1024,7 @@ class ESPLMModel {
         ) {
 
             this.layers.push(
-                new TransformerLayer(i)
+                new TransformerLayer()
             );
 
         }
@@ -970,6 +1034,7 @@ class ESPLMModel {
             tf.variable(
                 tf.ones([d])
             );
+
 
         this.finalBeta =
             tf.variable(
@@ -981,11 +1046,16 @@ class ESPLMModel {
 
     getTrainableVariables() {
 
-        const vars = [
+        const variables = [
+
             this.tokenEmbedding,
+
             this.positionEmbedding,
+
             this.finalGamma,
+
             this.finalBeta
+
         ];
 
 
@@ -993,7 +1063,8 @@ class ESPLMModel {
             const layer of this.layers
         ) {
 
-            vars.push(
+            variables.push(
+
                 layer.qWeight,
                 layer.kWeight,
                 layer.vWeight,
@@ -1015,11 +1086,13 @@ class ESPLMModel {
 
                 layer.norm2Gamma,
                 layer.norm2Beta
+
             );
 
         }
 
-        return vars;
+
+        return variables;
 
     }
 
@@ -1029,8 +1102,8 @@ class ESPLMModel {
         return this
             .getTrainableVariables()
             .reduce(
-                (sum, variable) =>
-                    sum + variable.size,
+                (total, variable) =>
+                    total + variable.size,
                 0
             );
 
@@ -1092,10 +1165,18 @@ class ESPLMModel {
                     true
                 );
 
+
+            const centered =
+                tf.sub(
+                    x,
+                    mean
+                );
+
+
             const variance =
                 tf.mean(
                     tf.square(
-                        tf.sub(x, mean)
+                        centered
                     ),
                     1,
                     true
@@ -1104,7 +1185,7 @@ class ESPLMModel {
 
             x =
                 tf.div(
-                    tf.sub(x, mean),
+                    centered,
                     tf.sqrt(
                         tf.add(
                             variance,
@@ -1124,13 +1205,6 @@ class ESPLMModel {
                 );
 
 
-            /*
-             * Tied output embedding.
-             *
-             * The same token embedding matrix is used
-             * to produce the output logits.
-             */
-
             return tf.matMul(
                 x,
                 this.tokenEmbedding,
@@ -1145,9 +1219,9 @@ class ESPLMModel {
 }
 
 
-/* ============================================================
-   MODEL CREATION
-   ============================================================ */
+/* =========================================================
+   MODEL INITIALIZATION
+   ========================================================= */
 
 async function createModel() {
 
@@ -1185,8 +1259,8 @@ async function createModel() {
         .getElementById(
             "trainingStatus"
         )
-        .innerHTML =
-        "Model ready.<br>" +
+        .textContent =
+        "Model ready.\n" +
         count.toLocaleString() +
         " trainable parameters.";
 
@@ -1196,9 +1270,9 @@ async function createModel() {
 }
 
 
-/* ============================================================
-   TRAINING DATA
-   ============================================================ */
+/* =========================================================
+   TRAINING DATA STORAGE
+   ========================================================= */
 
 function loadTrainingData() {
 
@@ -1209,13 +1283,20 @@ function loadTrainingData() {
                 "esplm_training_examples"
             );
 
+
         if (!raw) {
+
             savedExamples = [];
+
             return;
+
         }
 
+
         savedExamples =
-            JSON.parse(raw);
+            JSON.parse(
+                raw
+            );
 
     } catch {
 
@@ -1247,15 +1328,14 @@ function updateExampleCount() {
         .textContent =
         savedExamples.length;
 
+
     document
         .getElementById(
             "dataStatus"
         )
         .textContent =
-        savedExamples.length === 0
-            ? "No training data added yet."
-            : savedExamples.length +
-              " saved training example(s).";
+        savedExamples.length +
+        " saved training example(s).";
 
 }
 
@@ -1278,14 +1358,17 @@ function addTrainingData() {
                 "dataStatus"
             )
             .textContent =
-            "Please enter some training text first.";
+            "Please enter training text first.";
 
         return;
 
     }
 
 
-    savedExamples.push(text);
+    savedExamples.push(
+        text
+    );
+
 
     saveTrainingData();
 
@@ -1308,7 +1391,9 @@ function clearTrainingData() {
             "Clear all saved training data?"
         )
     ) {
+
         return;
+
     }
 
 
@@ -1321,9 +1406,9 @@ function clearTrainingData() {
 }
 
 
-/* ============================================================
-   CREATE TRAINING SEQUENCE
-   ============================================================ */
+/* =========================================================
+   TRAINING SEQUENCES
+   ========================================================= */
 
 function makeTrainingSequence() {
 
@@ -1338,33 +1423,17 @@ function makeTrainingSequence() {
     }
 
 
-    let combined =
+    let text =
         savedExamples.join(
             "\n\n"
         );
 
 
     let bytes =
-        encodeText(combined);
-
-
-    if (
-        bytes.length < 2
-    ) {
-
-        throw new Error(
-            "Training data is too short."
+        encodeText(
+            text
         );
 
-    }
-
-
-    /*
-     * Repeat the training text if necessary.
-     *
-     * This gives the model enough bytes to create
-     * a sequence even when the example is small.
-     */
 
     while (
         bytes.length <
@@ -1372,12 +1441,14 @@ function makeTrainingSequence() {
     ) {
 
         bytes =
-            bytes.concat(bytes);
+            bytes.concat(
+                bytes
+            );
 
     }
 
 
-    const maxStart =
+    const maximumStart =
         Math.max(
             0,
             bytes.length -
@@ -1389,40 +1460,107 @@ function makeTrainingSequence() {
     const start =
         Math.floor(
             Math.random() *
-            (maxStart + 1)
-        );
-
-
-    const input =
-        bytes.slice(
-            start,
-            start +
-            CONFIG.trainingSequence
-        );
-
-
-    const target =
-        bytes.slice(
-            start + 1,
-            start +
-            CONFIG.trainingSequence +
-            1
+            (
+                maximumStart + 1
+            )
         );
 
 
     return {
-        input,
-        target
+
+        input:
+            bytes.slice(
+                start,
+                start +
+                CONFIG.trainingSequence
+            ),
+
+        target:
+            bytes.slice(
+                start + 1,
+                start +
+                CONFIG.trainingSequence +
+                1
+            )
+
     };
 
 }
 
 
-/* ============================================================
-   CALCULATE LOSS
-   ============================================================ */
+/* =========================================================
+   FIXED MANUAL SPARSE CROSS ENTROPY
+   ========================================================= */
 
-function calculateLoss(sequence) {
+/*
+ * We do NOT use:
+ *
+ * tf.losses.sparseCategoricalCrossentropy
+ *
+ * because that function is not available in the
+ * TensorFlow.js build being used here.
+ *
+ * Instead:
+ *
+ * logits
+ *   -> logSoftmax
+ *   -> one-hot target
+ *   -> multiply
+ *   -> sum
+ *   -> negative mean
+ *
+ * This is mathematically the same sparse
+ * categorical cross-entropy calculation.
+ */
+
+function sparseCrossEntropy(
+    logits,
+    targets
+) {
+
+    return tf.tidy(() => {
+
+        const logProbabilities =
+            tf.logSoftmax(
+                logits
+            );
+
+
+        const oneHot =
+            tf.oneHot(
+                targets,
+                CONFIG.vocabSize
+            );
+
+
+        const selected =
+            tf.sum(
+                tf.mul(
+                    oneHot,
+                    logProbabilities
+                ),
+                1
+            );
+
+
+        return tf.neg(
+            tf.mean(
+                selected
+            )
+        );
+
+    });
+
+}
+
+
+/* =========================================================
+   CALCULATE LOSS
+   ========================================================= */
+
+function calculateLoss(
+    sequence
+) {
 
     return tf.tidy(() => {
 
@@ -1446,34 +1584,30 @@ function calculateLoss(sequence) {
             );
 
 
-        const losses =
-            tf.losses.sparseCategoricalCrossentropy(
-                target,
-                logits,
-                {
-                    fromLogits: true
-                }
-            );
-
-
-        return tf.mean(losses);
+        return sparseCrossEntropy(
+            logits,
+            target
+        );
 
     });
 
 }
 
 
-/* ============================================================
-   SINGLE TRAINING STEP
-   ============================================================ */
+/* =========================================================
+   TRAIN ONE STEP
+   ========================================================= */
 
-function trainOneStep(sequence) {
+function trainOneStep(
+    sequence
+) {
 
     const input =
         tf.tensor1d(
             sequence.input,
             "int32"
         );
+
 
     const target =
         tf.tensor1d(
@@ -1484,6 +1618,7 @@ function trainOneStep(sequence) {
 
     const loss =
         optimizer.minimize(
+
             () => {
 
                 const logits =
@@ -1492,21 +1627,17 @@ function trainOneStep(sequence) {
                     );
 
 
-                const losses =
-                    tf.losses.sparseCategoricalCrossentropy(
-                        target,
-                        logits,
-                        {
-                            fromLogits: true
-                        }
-                    );
-
-
-                return tf.mean(losses);
+                return sparseCrossEntropy(
+                    logits,
+                    target
+                );
 
             },
+
             true,
+
             model.getTrainableVariables()
+
         );
 
 
@@ -1526,9 +1657,9 @@ function trainOneStep(sequence) {
 }
 
 
-/* ============================================================
+/* =========================================================
    LOSS GRAPH
-   ============================================================ */
+   ========================================================= */
 
 function drawLossGraph() {
 
@@ -1537,8 +1668,11 @@ function drawLossGraph() {
             "lossCanvas"
         );
 
+
     const ctx =
-        canvas.getContext("2d");
+        canvas.getContext(
+            "2d"
+        );
 
 
     ctx.clearRect(
@@ -1552,15 +1686,19 @@ function drawLossGraph() {
     if (
         lossHistory.length === 0
     ) {
+
         return;
+
     }
 
 
     const padding = 35;
 
+
     const width =
         canvas.width -
         padding * 2;
+
 
     const height =
         canvas.height -
@@ -1571,6 +1709,7 @@ function drawLossGraph() {
         Math.max(
             ...lossHistory
         );
+
 
     const minLoss =
         Math.min(
@@ -1622,21 +1761,37 @@ function drawLossGraph() {
 
 
         if (i === 0) {
-            ctx.moveTo(x, y);
+
+            ctx.moveTo(
+                x,
+                y
+            );
+
         } else {
-            ctx.lineTo(x, y);
+
+            ctx.lineTo(
+                x,
+                y
+            );
+
         }
 
     }
 
 
-    ctx.strokeStyle = "#7ee787";
+    ctx.strokeStyle =
+        "#7ee787";
+
     ctx.lineWidth = 2;
+
     ctx.stroke();
 
 
-    ctx.fillStyle = "#9da7b8";
-    ctx.font = "12px Arial";
+    ctx.fillStyle =
+        "#9da7b8";
+
+    ctx.font =
+        "12px Arial";
 
 
     ctx.fillText(
@@ -1662,9 +1817,9 @@ function drawLossGraph() {
 }
 
 
-/* ============================================================
+/* =========================================================
    TRAIN MODEL
-   ============================================================ */
+   ========================================================= */
 
 async function trainModel() {
 
@@ -1743,38 +1898,37 @@ async function trainModel() {
         "Preparing training...";
 
 
-    document
-        .getElementById(
-            "learningVerdict"
-        )
-        .textContent =
-        "Measuring how the model learns...";
-
-
     try {
 
         await createModel();
 
 
         /*
-         * Measure the model BEFORE training.
+         * Use ONE fixed sequence for the diagnostic
+         * measurement so the before/after comparison
+         * is meaningful.
          */
 
-        const initialSequence =
+        const diagnosticSequence =
             makeTrainingSequence();
 
 
-        const initialLossTensor =
+        const startingLossTensor =
             calculateLoss(
-                initialSequence
+                diagnosticSequence
             );
 
 
-        const initialLoss =
-            initialLossTensor.dataSync()[0];
+        const startingLoss =
+            startingLossTensor.dataSync()[0];
 
 
-        initialLossTensor.dispose();
+        startingLossTensor.dispose();
+
+
+        lossHistory.push(
+            startingLoss
+        );
 
 
         document
@@ -1782,7 +1936,7 @@ async function trainModel() {
                 "startLoss"
             )
             .textContent =
-            initialLoss.toFixed(4);
+            startingLoss.toFixed(5);
 
 
         document
@@ -1790,19 +1944,14 @@ async function trainModel() {
                 "currentLoss"
             )
             .textContent =
-            initialLoss.toFixed(4);
-
-
-        lossHistory.push(
-            initialLoss
-        );
+            startingLoss.toFixed(5);
 
 
         drawLossGraph();
 
 
         /*
-         * Now actually train.
+         * Actual training.
          */
 
         for (
@@ -1831,11 +1980,7 @@ async function trainModel() {
                     "currentLoss"
                 )
                 .textContent =
-                loss.toFixed(4);
-
-
-            const change =
-                loss - initialLoss;
+                loss.toFixed(5);
 
 
             document
@@ -1843,7 +1988,10 @@ async function trainModel() {
                     "lossChange"
                 )
                 .textContent =
-                change.toFixed(4);
+                (
+                    loss -
+                    startingLoss
+                ).toFixed(5);
 
 
             document
@@ -1857,16 +2005,11 @@ async function trainModel() {
                 steps +
                 "\n" +
                 "Current loss: " +
-                loss.toFixed(4);
+                loss.toFixed(5);
 
 
             drawLossGraph();
 
-
-            /*
-             * Give the browser a chance to update
-             * the screen and remain responsive.
-             */
 
             if (
                 step % 2 === 0
@@ -1885,15 +2028,27 @@ async function trainModel() {
         }
 
 
+        /*
+         * Measure the SAME diagnostic sequence
+         * after training.
+         */
+
+        const finalLossTensor =
+            calculateLoss(
+                diagnosticSequence
+            );
+
+
         const finalLoss =
-            lossHistory[
-                lossHistory.length - 1
-            ];
+            finalLossTensor.dataSync()[0];
 
 
-        const difference =
+        finalLossTensor.dispose();
+
+
+        const change =
             finalLoss -
-            initialLoss;
+            startingLoss;
 
 
         document
@@ -1901,7 +2056,7 @@ async function trainModel() {
                 "currentLoss"
             )
             .textContent =
-            finalLoss.toFixed(4);
+            finalLoss.toFixed(5);
 
 
         document
@@ -1909,16 +2064,16 @@ async function trainModel() {
                 "lossChange"
             )
             .textContent =
-            difference.toFixed(4);
+            change.toFixed(5);
 
 
         /*
-         * Interpret the result conservatively.
+         * Give a conservative interpretation.
          */
 
         if (
             finalLoss <
-            initialLoss * 0.95
+            startingLoss * 0.95
         ) {
 
             document
@@ -1927,19 +2082,20 @@ async function trainModel() {
                 )
                 .innerHTML =
                 '<span class="good">' +
-                "GOOD SIGN: The training loss decreased " +
-                "by at least 5%. The neural network is " +
-                "responding to the training data." +
+                "GOOD SIGN: Loss decreased by at least 5%. " +
+                "The neural network is responding to the " +
+                "training data." +
                 "</span>" +
                 "<br><br>" +
-                "This does NOT mean the model can speak " +
-                "well yet. It means training is producing " +
-                "a measurable learning signal.";
+                "This does not mean the model can speak " +
+                "well yet. It means the training signal " +
+                "is working.";
 
         }
+
         else if (
             finalLoss <
-            initialLoss
+            startingLoss
         ) {
 
             document
@@ -1948,13 +2104,13 @@ async function trainModel() {
                 )
                 .innerHTML =
                 '<span class="warning">' +
-                "The loss decreased, but only a little. " +
-                "The network is learning something, but " +
-                "we should improve the training setup " +
-                "before doing very long runs." +
+                "The loss decreased. The network is " +
+                "learning something, but the improvement " +
+                "is still small." +
                 "</span>";
 
         }
+
         else {
 
             document
@@ -1963,10 +2119,9 @@ async function trainModel() {
                 )
                 .innerHTML =
                 '<span class="bad">' +
-                "WARNING: The loss did not decrease. " +
-                "Do NOT spend hours training this version " +
-                "yet. We need to investigate the training " +
-                "setup first." +
+                "WARNING: The diagnostic loss did not " +
+                "decrease. Do not spend hours training " +
+                "this version yet." +
                 "</span>";
 
         }
@@ -1977,17 +2132,21 @@ async function trainModel() {
                 "trainStatus"
             )
             .textContent =
-            "Training finished.\n\n" +
-            "Starting loss: " +
-            initialLoss.toFixed(4) +
+            "Training complete — neural network " +
+            "weights have been updated.\n\n" +
+            "Starting diagnostic loss: " +
+            startingLoss.toFixed(5) +
             "\n" +
-            "Final loss: " +
-            finalLoss.toFixed(4);
+            "Final diagnostic loss: " +
+            finalLoss.toFixed(5);
 
 
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            error
+        );
+
 
         document
             .getElementById(
@@ -2007,9 +2166,9 @@ async function trainModel() {
 }
 
 
-/* ============================================================
+/* =========================================================
    BROWSER GENERATION
-   ============================================================ */
+   ========================================================= */
 
 async function browserGenerate() {
 
@@ -2063,7 +2222,9 @@ async function generateText(
 ) {
 
     let bytes =
-        encodeText(prompt);
+        encodeText(
+            prompt
+        );
 
 
     for (
@@ -2106,7 +2267,8 @@ async function generateText(
                 .squeeze();
 
 
-        const temperature = 0.9;
+        const temperature =
+            0.9;
 
 
         const probabilities =
@@ -2130,9 +2292,13 @@ async function generateText(
 
 
         nextTensor.dispose();
+
         probabilities.dispose();
+
         last.dispose();
+
         logits.dispose();
+
         input.dispose();
 
 
@@ -2158,14 +2324,16 @@ async function generateText(
     }
 
 
-    return decodeBytes(bytes);
+    return decodeBytes(
+        bytes
+    );
 
 }
 
 
-/* ============================================================
-   ESP32 SERIAL
-   ============================================================ */
+/* =========================================================
+   SERIAL
+   ========================================================= */
 
 async function connectESP32() {
 
@@ -2315,23 +2483,28 @@ async function readSerialLoop() {
             serialReader
         ) {
 
-            const {
-                value,
-                done
-            } =
+            const result =
                 await serialReader.read();
 
 
-            if (done) {
+            if (
+                result.done
+            ) {
+
                 break;
+
             }
 
 
-            if (value) {
+            if (
+                result.value
+            ) {
 
                 serialBuffer +=
                     new TextDecoder()
-                        .decode(value);
+                        .decode(
+                            result.value
+                        );
 
 
                 let newline;
@@ -2401,7 +2574,8 @@ async function sendSerial(
     const data =
         new TextEncoder()
             .encode(
-                text + "\n"
+                text +
+                "\n"
             );
 
 
@@ -2412,7 +2586,9 @@ async function sendSerial(
 }
 
 
-function handleSerialLine(line) {
+function handleSerialLine(
+    line
+) {
 
     console.log(
         "ESP32:",
@@ -2436,12 +2612,73 @@ function handleSerialLine(line) {
 
     }
 
+
+    if (
+        line.startsWith(
+            "INFO|"
+        )
+    ) {
+
+        document
+            .getElementById(
+                "espInfo"
+            )
+            .textContent =
+            line;
+
+    }
+
+
+    if (
+        line.startsWith(
+            "MODEL_STATUS|"
+        )
+    ) {
+
+        document
+            .getElementById(
+                "espInfo"
+            )
+            .textContent +=
+            "\n" +
+            line;
+
+    }
+
+
+    if (
+        line.startsWith(
+            "CHAT_RESULT|"
+        )
+    ) {
+
+        const parts =
+            line.split("|");
+
+
+        if (
+            parts.length >= 3
+        ) {
+
+            document
+                .getElementById(
+                    "chatOutput"
+                )
+                .textContent =
+                parts
+                    .slice(2)
+                    .join("|");
+
+        }
+
+    }
+
 }
 
 
-/* ============================================================
-   CHAT THROUGH ESP32
-   ============================================================ */
+/* =========================================================
+   CHAT
+   ========================================================= */
 
 async function sendChat() {
 
@@ -2498,7 +2735,6 @@ async function sendChat() {
             .textContent =
             "Request sent to ESP32...";
 
-
     } catch (error) {
 
         document
@@ -2513,7 +2749,9 @@ async function sendChat() {
 }
 
 
-function escapeProtocolField(text) {
+function escapeProtocolField(
+    text
+) {
 
     return text
         .replaceAll(
@@ -2536,9 +2774,9 @@ function escapeProtocolField(text) {
 }
 
 
-/* ============================================================
+/* =========================================================
    ESP32 INFO
-   ============================================================ */
+   ========================================================= */
 
 async function getESP32Info() {
 
@@ -2560,6 +2798,7 @@ async function getESP32Info() {
         "INFO"
     );
 
+
     await sendSerial(
         "MODEL_STATUS"
     );
@@ -2567,9 +2806,9 @@ async function getESP32Info() {
 }
 
 
-/* ============================================================
-   MODEL EXPORT
-   ============================================================ */
+/* =========================================================
+   EXPORT
+   ========================================================= */
 
 function writeUint32(
     view,
@@ -2599,7 +2838,8 @@ function writeFloat32Array(
     ) {
 
         view.setFloat32(
-            offset + i * 4,
+            offset +
+            i * 4,
             array[i],
             true
         );
@@ -2618,7 +2858,7 @@ async function exportModel() {
                 "exportStatus"
             )
             .textContent =
-            "Create/train the model first.";
+            "Create the model first.";
 
         return;
 
@@ -2632,7 +2872,8 @@ async function exportModel() {
     const tensors = [];
 
 
-    let totalBytes = 40;
+    let totalBytes =
+        40;
 
 
     for (
@@ -2647,15 +2888,11 @@ async function exportModel() {
             variable.shape;
 
 
-        const recordBytes =
+        totalBytes +=
             4 +
             4 +
             shape.length * 4 +
             values.length * 4;
-
-
-        totalBytes +=
-            recordBytes;
 
 
         tensors.push({
@@ -2682,7 +2919,7 @@ async function exportModel() {
 
 
     /*
-     * Header
+     * Magic
      */
 
     writeUint32(
@@ -2693,6 +2930,10 @@ async function exportModel() {
 
     offset += 4;
 
+
+    /*
+     * Version 3
+     */
 
     writeUint32(
         view,
@@ -2774,10 +3015,6 @@ async function exportModel() {
 
     offset += 4;
 
-
-    /*
-     * Tensor records
-     */
 
     for (
         const tensor of tensors
@@ -2876,23 +3113,15 @@ async function exportModel() {
 }
 
 
-/* ============================================================
+/* =========================================================
    STARTUP
-   ============================================================ */
+   ========================================================= */
 
 async function startup() {
 
     loadTrainingData();
 
     updateExampleCount();
-
-
-    document
-        .getElementById(
-            "trainingStatus"
-        )
-        .textContent =
-        "Loading TensorFlow.js...";
 
 
     try {
@@ -2903,7 +3132,10 @@ async function startup() {
 
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            error
+        );
+
 
         document
             .getElementById(
@@ -2911,7 +3143,7 @@ async function startup() {
             )
             .innerHTML =
             '<span class="bad">' +
-            "Could not initialize TensorFlow.js: " +
+            "Could not initialize TensorFlow.js:\n" +
             error.message +
             "</span>";
 
