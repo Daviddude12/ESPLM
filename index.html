@@ -172,7 +172,7 @@ textarea {
 </head>
 
 <body>
-<div id="buildVersion" aria-label="Mino AI page build 11">Mino build 11</div>
+<div id="buildVersion" aria-label="Mino AI page build 12">Mino build 12</div>
 
 <header>
     <h1>Mino AI</h1>
@@ -373,7 +373,7 @@ textarea {
         <h2>Train Model</h2>
 
         <p class="small">
-            Training requires examples you provide in at least one of the two areas above. If both areas are empty, Mino will not train or generate text.
+            Training uses your own complete conversation pairs. Put each turn on lines beginning with User: and Mino:. The model learns from those pairs; no conversations are built in.
         </p>
 
         <label>
@@ -460,6 +460,10 @@ textarea {
             Run a short training test to measure learning.
         </div>
 
+        <p class="small">
+            A lower loss means the model predicts your training characters better; it does not by itself prove that replies sound natural. The chat test below is the real check.
+        </p>
+
         <canvas
             id="lossCanvas"
             width="900"
@@ -499,7 +503,7 @@ textarea {
         <h2>Guardrail Preview — Same Message</h2>
 
         <p class="small">
-            This checks Mino's programmed focus and style rules using the same message above. It is a separate preview, not the neural model's reply, and it adds no training examples.
+            Hard-coded personality: Mino is a tiny, curious little ESP32 guy—friendly, upbeat, lightly playful, and respectful. He is not babyish and does not call you cute or use pet names. This rules preview is separate from the neural model's reply and adds no training examples.
         </p>
 
         <button onclick="previewMinoGuardrails()">
@@ -559,7 +563,7 @@ const CONFIG = {
 
     contextSize: 256,
 
-    trainingSequence: 64,
+    trainingSequence: 96,
 
     learningRate: 0.001,
 
@@ -1673,7 +1677,9 @@ function updateExampleCount() {
         )
         .textContent =
         savedExamples.length +
-        " general example(s) saved. Nothing is built in.";
+        " general example block(s) saved; " +
+        getTrainingPairs().filter(pair => pair.source === "general").length +
+        " conversation pair(s) ready. Nothing is built in.";
 
     document
         .getElementById(
@@ -1681,7 +1687,9 @@ function updateExampleCount() {
         )
         .textContent =
         personalityExamples.length +
-        " personality example(s) saved.";
+        " personality example block(s) saved; " +
+        getTrainingPairs().filter(pair => pair.source === "personality").length +
+        " conversation pair(s) ready.";
 
 }
 
@@ -1760,80 +1768,90 @@ async function clearTrainingData() {
    TRAINING SEQUENCES
    ========================================================= */
 
-function makeTrainingSequence() {
+function extractTrainingPairs(exampleText) {
+    const pairs = [];
+    const lines = String(exampleText).split(/\r?\n/);
+    let currentUser = "";
+    let currentMino = [];
+    let readingMino = false;
 
-    const trainingParts = [
-        ...savedExamples,
-        ...personalityExamples
-    ];
-
-    if (trainingParts.length === 0) {
-        throw new Error("Add your own general or personality examples before training.");
+    function savePair() {
+        const answer = currentMino.join("\n").trim();
+        if (currentUser && answer) {
+            pairs.push({ user: currentUser.trim(), mino: answer });
+        }
+        currentUser = "";
+        currentMino = [];
+        readingMino = false;
     }
 
-    let text =
-        trainingParts.join(
-            "\n\n"
-        );
+    for (const line of lines) {
+        const userMatch = line.match(/^\s*User\s*:\s*(.*)$/i);
+        const minoMatch = line.match(/^\s*Mino\s*:\s*(.*)$/i);
 
-    let bytes =
-        encodeText(
-            text
-        );
-
-
-    while (
-        bytes.length <
-        CONFIG.trainingSequence + 1
-    ) {
-
-        bytes =
-            bytes.concat(
-                bytes
-            );
-
+        if (userMatch) {
+            savePair();
+            currentUser = userMatch[1];
+        } else if (minoMatch && currentUser) {
+            currentMino.push(minoMatch[1]);
+            readingMino = true;
+        } else if (readingMino) {
+            currentMino.push(line);
+        }
     }
 
-
-    const maximumStart =
-        Math.max(
-            0,
-            bytes.length -
-            CONFIG.trainingSequence -
-            1
-        );
-
-
-    const start =
-        Math.floor(
-            Math.random() *
-            (
-                maximumStart + 1
-            )
-        );
-
-
-    return {
-
-        input:
-            bytes.slice(
-                start,
-                start +
-                CONFIG.trainingSequence
-            ),
-
-        target:
-            bytes.slice(
-                start + 1,
-                start +
-                CONFIG.trainingSequence +
-                1
-            )
-
-    };
-
+    savePair();
+    return pairs;
 }
 
+
+function getTrainingPairs() {
+    return [
+        ...savedExamples
+            .flatMap(extractTrainingPairs)
+            .map(pair => ({ ...pair, source: "general" })),
+        ...personalityExamples
+            .flatMap(extractTrainingPairs)
+            .map(pair => ({ ...pair, source: "personality" }))
+    ];
+}
+
+
+function makeTrainingSequence() {
+    const pairs = getTrainingPairs();
+
+    if (pairs.length === 0) {
+        throw new Error("Add your own examples using User: and Mino: lines before training.");
+    }
+
+    const pair = pairs[Math.floor(Math.random() * pairs.length)];
+    const promptPrefix = "User: " + pair.user + "\nMino:";
+    const fullText = promptPrefix + " " + pair.mino + "\n";
+    const tokens = encodeText(fullText);
+    const answerStart = encodeText(promptPrefix + " ").length;
+    const maximumStart = Math.max(0, tokens.length - CONFIG.trainingSequence - 1);
+    const contextBeforeAnswer = Math.floor(CONFIG.trainingSequence * 0.55);
+    const minimumStart = Math.min(
+        maximumStart,
+        Math.max(0, answerStart - contextBeforeAnswer)
+    );
+    const latestStart = Math.min(
+        maximumStart,
+        Math.max(minimumStart, answerStart - Math.floor(CONFIG.trainingSequence * 0.4))
+    );
+    const lastStart = Math.max(minimumStart, latestStart);
+    const start = minimumStart + Math.floor(Math.random() * (lastStart - minimumStart + 1));
+    const sequenceLength = Math.min(CONFIG.trainingSequence, tokens.length - start - 1);
+
+    if (sequenceLength < 1) {
+        throw new Error("One of the saved examples is too short. Add a Mino: reply after each User: line.");
+    }
+
+    return {
+        input: tokens.slice(start, start + sequenceLength),
+        target: tokens.slice(start + 1, start + sequenceLength + 1)
+    };
+}
 
 /* =========================================================
    MANUAL SPARSE CROSS-ENTROPY LOSS
@@ -2181,15 +2199,12 @@ async function trainModel() {
     }
 
 
-    if (
-        savedExamples.length === 0 &&
-        personalityExamples.length === 0
-    ) {
+    if (getTrainingPairs().length === 0) {
 
         document
             .getElementById("trainStatus")
             .innerHTML =
-            '<span class="bad">Add your own general or personality examples before training.</span>';
+            '<span class="bad">Add complete User: and Mino: conversation pairs before training.</span>';
 
         return;
 
@@ -2601,7 +2616,7 @@ function previewMinoGuardrails() {
 }
 
 
-function sampleNextCharacter(logitValues, temperature = 0.65, topK = 8) {
+function sampleNextCharacter(logitValues, temperature = 0.5, topK = 5) {
     const ranked = Array.from(logitValues, (score, id) => ({
         id,
         score: score / temperature
