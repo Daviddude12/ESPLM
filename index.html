@@ -172,7 +172,7 @@ textarea {
 </head>
 
 <body>
-<div id="buildVersion" aria-label="Mino AI page build 15">Mino build 15</div>
+<div id="buildVersion" aria-label="Mino AI page build 16">Mino build 16</div>
 
 <header>
     <h1>Mino AI</h1>
@@ -290,7 +290,7 @@ textarea {
         </div>
 
         <p class="small">
-            Mino has no built-in training examples or pretrained language model. The buddy style shown in Guardrail Preview is a separate programmed rule; neural replies come from the examples you add here.
+            Mino has no built-in training examples or pretrained language model. The buddy style shown in Guardrail Preview is a separate programmed rule; neural replies come from the examples you add here. Build 16 changes the character-prediction layer, so older saved model weights cannot be used; your saved training examples remain available.
         </p>
 
         <div
@@ -602,6 +602,8 @@ const PERSONALITY_STORAGE_KEY = "mino_personality_examples_v1";
 let hasTrainedWeights = false;
 
 let skippedGradientValuesThisRun = 0;
+
+let invalidGradientTensorNamesThisRun = new Set();
 
 
 /* =========================================================
@@ -1114,6 +1116,24 @@ class MinoModel {
             );
 
 
+        // Keep the prediction head separate from the input token table.
+        // This avoids the unstable shared-embedding gradient seen in training.
+        this.outputWeight =
+            tf.variable(
+                tf.randomNormal(
+                    [CONFIG.vocabSize, d],
+                    0,
+                    0.02
+                )
+            );
+
+
+        this.outputBias =
+            tf.variable(
+                tf.zeros([CONFIG.vocabSize])
+            );
+
+
         this.layers = [];
 
 
@@ -1151,6 +1171,10 @@ class MinoModel {
             this.tokenEmbedding,
 
             this.positionEmbedding,
+
+            this.outputWeight,
+
+            this.outputBias,
 
             this.finalGamma,
 
@@ -1307,10 +1331,10 @@ class MinoModel {
 
             return tf.matMul(
                 x,
-                this.tokenEmbedding,
+                this.outputWeight,
                 false,
                 true
-            );
+            ).add(this.outputBias);
 
         });
 
@@ -1376,7 +1400,7 @@ async function createModel() {
    MODEL WEIGHT STORAGE
    ========================================================= */
 
-const MODEL_STORAGE_KEY = "mino_model_weights_v3";
+const MODEL_STORAGE_KEY = "mino_model_weights_v4";
 
 function modelWeightsAreFinite() {
     if (!model) return false;
@@ -1461,7 +1485,16 @@ async function loadModelWeights() {
         const raw = localStorage.getItem(MODEL_STORAGE_KEY);
         if (!raw) {
             hasTrainedWeights = false;
-            if (status) status.textContent = "No saved model yet. Train the model, then save it here.";
+            const hasOlderWeights = Boolean(
+                localStorage.getItem("mino_model_weights_v3") ||
+                localStorage.getItem("mino_model_weights_v2") ||
+                localStorage.getItem("esplm_model_weights_v1")
+            );
+            if (status) {
+                status.textContent = hasOlderWeights
+                    ? "This build uses a changed output layer, so older saved weights cannot be loaded. They were left untouched. Your examples are still saved; train this version to create compatible weights."
+                    : "No saved model for this build yet. Your examples are saved; train the model, then save its weights here.";
+            }
             return false;
         }
 
@@ -1573,6 +1606,7 @@ async function resetWeightsKeepExamples(message) {
     try {
         localStorage.removeItem(MODEL_STORAGE_KEY);
         localStorage.removeItem("mino_model_weights_v2");
+        localStorage.removeItem("mino_model_weights_v3");
         localStorage.removeItem("esplm_model_weights_v1");
         localStorage.removeItem("mino_personality_v1");
         hasTrainedWeights = false;
@@ -2018,11 +2052,13 @@ function trainOneStep(
         // If too many values are invalid, abort and restore the prior weights.
         let skippedThisStep = 0;
         let totalGradientValues = 0;
+        const invalidNamesThisStep = [];
 
         for (const [name, gradient] of Object.entries(gradients.grads)) {
             const values = gradient.dataSync();
             const safeValues = new Float32Array(values.length);
             totalGradientValues += values.length;
+            let thisTensorHadInvalidValues = false;
 
             for (let i = 0; i < values.length; i++) {
                 if (Number.isFinite(values[i])) {
@@ -2030,8 +2066,11 @@ function trainOneStep(
                 } else {
                     safeValues[i] = 0;
                     skippedThisStep++;
+                    thisTensorHadInvalidValues = true;
                 }
             }
+
+            if (thisTensorHadInvalidValues) invalidNamesThisStep.push(name);
 
             const safeGradient = tf.tensor(safeValues, gradient.shape, "float32");
             clippedGradients[name] = tf.clipByValue(
@@ -2044,10 +2083,11 @@ function trainOneStep(
 
         const maximumSkippedValues = Math.max(32, Math.floor(totalGradientValues * 0.001));
         if (skippedThisStep > maximumSkippedValues) {
-            throw new Error("Training stopped because too many gradient values were invalid (" + skippedThisStep + "). The previous good weights will be restored.");
+            throw new Error("Training stopped because too many gradient values were invalid (" + skippedThisStep + ") in: " + invalidNamesThisStep.join(", ") + ". The previous good weights will be restored.");
         }
 
         skippedGradientValuesThisRun += skippedThisStep;
+        for (const name of invalidNamesThisStep) invalidGradientTensorNamesThisRun.add(name);
 
         optimizer.applyGradients(clippedGradients);
 
@@ -2294,6 +2334,7 @@ async function trainModel() {
 
     lossHistory = [];
     skippedGradientValuesThisRun = 0;
+    invalidGradientTensorNamesThisRun = new Set();
 
     let safeWeightSnapshot = [];
     let restoredSafeWeights = false;
@@ -2577,7 +2618,7 @@ async function trainModel() {
             "Final diagnostic loss: " +
             finalLoss.toFixed(5) +
             (skippedGradientValuesThisRun > 0
-                ? "\nInvalid gradient values safely replaced with zero: " + skippedGradientValuesThisRun
+                ? "\nInvalid gradient values safely replaced with zero: " + skippedGradientValuesThisRun + "\nAffected weights: " + Array.from(invalidGradientTensorNamesThisRun).join(", ")
                 : "\nNo invalid gradient values needed replacement.");
 
 
@@ -3450,13 +3491,13 @@ async function exportModel() {
 
 
     /*
-     * Version 4: printable ASCII character tokens
+     * Version 5: printable ASCII tokens and separate output projection
      */
 
     writeUint32(
         view,
         offset,
-        4
+        5
     );
 
     offset += 4;
