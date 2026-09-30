@@ -172,7 +172,7 @@ textarea {
 </head>
 
 <body>
-<div id="buildVersion" aria-label="Mino AI page build 17">Mino build 17</div>
+<div id="buildVersion" aria-label="Mino AI page build 18">Mino build 18</div>
 
 <header>
     <h1>Mino AI</h1>
@@ -290,7 +290,7 @@ textarea {
         </div>
 
         <p class="small">
-            Mino has no built-in training examples or pretrained language model. The buddy style shown in Guardrail Preview is a separate programmed rule; neural replies come from the examples you add here. Build 16 changed the character-prediction layer, so older saved model weights cannot be used; your saved training examples remain available.
+            Mino has no built-in training examples or pretrained language model. The buddy style shown in Guardrail Preview is a separate programmed rule; neural replies come from the examples you add here. Build 18 updates the output-weight layout for training; older saved weights are left untouched but are not loaded. Your saved examples remain available.
         </p>
 
         <div
@@ -1121,10 +1121,12 @@ class MinoModel {
         this.outputWeight =
             tf.variable(
                 tf.randomNormal(
-                    [CONFIG.vocabSize, d],
+                    [d, CONFIG.vocabSize],
                     0,
                     0.02
-                )
+                ),
+                true,
+                "mino_output_projection"
             );
 
 
@@ -1341,12 +1343,15 @@ class MinoModel {
                 );
 
 
-            return tf.matMul(
+            const logits = tf.matMul(
                 x,
-                this.outputWeight,
-                false,
-                true
-            ).add(this.outputBias);
+                this.outputWeight
+            );
+
+            return tf.add(
+                logits,
+                this.outputBias
+            );
 
         });
 
@@ -1412,7 +1417,7 @@ async function createModel() {
    MODEL WEIGHT STORAGE
    ========================================================= */
 
-const MODEL_STORAGE_KEY = "mino_model_weights_v4";
+const MODEL_STORAGE_KEY = "mino_model_weights_v5";
 
 function modelWeightsAreFinite() {
     if (!model) return false;
@@ -1499,6 +1504,7 @@ async function loadModelWeights() {
             hasTrainedWeights = false;
             const hasOlderWeights = Boolean(
                 localStorage.getItem("mino_model_weights_v3") ||
+                localStorage.getItem("mino_model_weights_v4") ||
                 localStorage.getItem("mino_model_weights_v2") ||
                 localStorage.getItem("esplm_model_weights_v1")
             );
@@ -1619,6 +1625,7 @@ async function resetWeightsKeepExamples(message) {
         localStorage.removeItem(MODEL_STORAGE_KEY);
         localStorage.removeItem("mino_model_weights_v2");
         localStorage.removeItem("mino_model_weights_v3");
+        localStorage.removeItem("mino_model_weights_v4");
         localStorage.removeItem("esplm_model_weights_v1");
         localStorage.removeItem("mino_personality_v1");
         hasTrainedWeights = false;
@@ -3505,13 +3512,13 @@ async function exportModel() {
 
 
     /*
-     * Version 5: printable ASCII tokens and separate output projection
+     * Version 6: printable ASCII tokens and non-transposed output projection
      */
 
     writeUint32(
         view,
         offset,
-        5
+        6
     );
 
     offset += 4;
