@@ -172,7 +172,7 @@ textarea {
 </head>
 
 <body>
-<div id="buildVersion" aria-label="Mino AI page build 13">Mino build 13</div>
+<div id="buildVersion" aria-label="Mino AI page build 14">Mino build 14</div>
 
 <header>
     <h1>Mino AI</h1>
@@ -290,7 +290,7 @@ textarea {
         </div>
 
         <p class="small">
-            Mino has no built-in training examples or pretrained model. He can train only from examples you add here.
+            Mino has no built-in training examples or pretrained language model. The buddy style shown in Guardrail Preview is a separate programmed rule; neural replies come from the examples you add here.
         </p>
 
         <div
@@ -344,16 +344,15 @@ textarea {
 
     <div class="card">
 
-        <h2>Personality Training Only</h2>
+        <h2>Built-in Personality and Optional Personality Examples</h2>
 
         <p class="small">
-            Add your own examples showing the personality you want. This area is stored separately from general examples.
-            Remove these examples and retrain to change personality without deleting your general examples.
+            Mino's tiny, curious, friendly buddy personality is built into the separate Guardrail Preview below. It does not come from this box and does not change the neural model's reply. This optional area lets you add your own personality examples to neural training. Removing them resets learned weights, but keeps your general examples.
         </p>
 
         <textarea
             id="personalityTrainingText"
-            placeholder="Write your own examples of how Mino should sound. Nothing is prefilled."></textarea>
+            placeholder="Optional: add your own User: and Mino: conversation pairs for personality training. Nothing is prefilled."></textarea>
 
         <div class="row">
             <button onclick="addPersonalityTraining()">Add Personality Examples</button>
@@ -363,7 +362,7 @@ textarea {
         <div
             id="personalityDataStatus"
             class="status">
-            No personality examples added.
+            No optional personality examples added. Mino's programmed preview personality is already set.
         </div>
 
     </div>
@@ -373,7 +372,7 @@ textarea {
         <h2>Train Model</h2>
 
         <p class="small">
-            Training uses your own complete conversation pairs. Put each turn on lines beginning with User: and Mino:. The model learns from those pairs; no conversations are built in.
+            Training uses your own complete conversation pairs. Put each turn on lines beginning with User: and Mino:. No sample conversations are built in. Training clips oversized updates and stops safely if it detects invalid numbers.
         </p>
 
         <label>
@@ -565,7 +564,9 @@ const CONFIG = {
 
     trainingSequence: 96,
 
-    learningRate: 0.001,
+    learningRate: 0.0001,
+
+    gradientClipValue: 1.0,
 
     password: "10172011"
 
@@ -1375,6 +1376,17 @@ async function createModel() {
 
 const MODEL_STORAGE_KEY = "mino_model_weights_v3";
 
+function modelWeightsAreFinite() {
+    if (!model) return false;
+    for (const variable of model.getTrainableVariables()) {
+        const values = variable.dataSync();
+        for (let i = 0; i < values.length; i++) {
+            if (!Number.isFinite(values[i])) return false;
+        }
+    }
+    return true;
+}
+
 function modelArchitectureSignature() {
     return JSON.stringify({
         vocabSize: CONFIG.vocabSize,
@@ -1388,6 +1400,12 @@ function modelArchitectureSignature() {
 
 async function saveModelWeights(allowTrainingCheckpoint = false) {
     if (!model) return false;
+
+    if (!modelWeightsAreFinite()) {
+        const status = document.getElementById("modelPersistenceStatus");
+        if (status) status.textContent = "Model weights were not saved because training produced an invalid number. Earlier saved weights, if any, are unchanged.";
+        return false;
+    }
 
     if (!hasTrainedWeights && !allowTrainingCheckpoint) {
         const status = document.getElementById("modelPersistenceStatus");
@@ -1457,6 +1475,17 @@ async function loadModelWeights() {
         const bytes = new Uint8Array(expectedBytes);
         for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
         const view = new DataView(bytes.buffer);
+
+        // Validate the complete saved payload before assigning any tensor.
+        for (let i = 0; i < expectedBytes; i += 4) {
+            if (!Number.isFinite(view.getFloat32(i, true))) {
+                localStorage.removeItem(MODEL_STORAGE_KEY);
+                hasTrainedWeights = false;
+                if (status) status.textContent = "A damaged saved model containing invalid numbers was removed. Your training examples are still saved; retrain after updating the page.";
+                return false;
+            }
+        }
+
         let offset = 0;
 
         for (const variable of model.getTrainableVariables()) {
@@ -1966,43 +1995,51 @@ function trainOneStep(
         );
 
 
-    const loss =
-        optimizer.minimize(
+    let gradients = null;
+    const clippedGradients = {};
 
+    try {
+        gradients = optimizer.computeGradients(
             () => {
-
-                const logits =
-                    model.forward(
-                        input
-                    );
-
-
-                return sparseCrossEntropy(
-                    logits,
-                    target
-                );
-
+                const logits = model.forward(input);
+                return sparseCrossEntropy(logits, target);
             },
-
-            true,
-
             model.getTrainableVariables()
-
         );
 
+        const value = gradients.value.dataSync()[0];
+        if (!Number.isFinite(value)) {
+            throw new Error("Training stopped because the loss became invalid (NaN or infinity). The previous good weights will be restored.");
+        }
 
-    const value =
-        loss.dataSync()[0];
+        // Element-wise gradient clipping prevents a large update from
+        // destabilizing the transformer on a small Chromebook/browser run.
+        for (const [name, gradient] of Object.entries(gradients.grads)) {
+            const values = gradient.dataSync();
+            for (let i = 0; i < values.length; i++) {
+                if (!Number.isFinite(values[i])) {
+                    throw new Error("Training stopped because it produced an invalid gradient. The previous good weights will be restored.");
+                }
+            }
+            clippedGradients[name] = tf.clipByValue(
+                gradient,
+                -CONFIG.gradientClipValue,
+                CONFIG.gradientClipValue
+            );
+        }
 
+        optimizer.applyGradients(clippedGradients);
 
-    loss.dispose();
-
-    input.dispose();
-
-    target.dispose();
-
-
-    return value;
+        return value;
+    } finally {
+        for (const gradient of Object.values(clippedGradients)) gradient.dispose();
+        if (gradients) {
+            gradients.value.dispose();
+            for (const gradient of Object.values(gradients.grads)) gradient.dispose();
+        }
+        input.dispose();
+        target.dispose();
+    }
 
 }
 
@@ -2236,6 +2273,10 @@ async function trainModel() {
 
     lossHistory = [];
 
+    let safeWeightSnapshot = [];
+    let restoredSafeWeights = false;
+    const hadSafeTrainedWeights = hasTrainedWeights;
+
 
     document
         .getElementById(
@@ -2248,6 +2289,9 @@ async function trainModel() {
     try {
 
         await createModel();
+
+        // Keep the pre-run weights so a failed/unstable run can be undone.
+        safeWeightSnapshot = model.getTrainableVariables().map(variable => variable.clone());
 
 
         /*
@@ -2271,6 +2315,10 @@ async function trainModel() {
 
 
         startingLossTensor.dispose();
+
+        if (!Number.isFinite(startingLoss)) {
+            throw new Error("The starting loss is invalid. Training did not begin; check the saved model and try again after updating the page.");
+        }
 
 
         lossHistory.push(
@@ -2321,7 +2369,12 @@ async function trainModel() {
                 loss
             );
 
-            if (step % 20 === 0) await saveModelWeights(true);
+            if (step % 20 === 0) {
+                if (!modelWeightsAreFinite()) {
+                    throw new Error("Training stopped because model weights became invalid. The previous good weights will be restored.");
+                }
+                await saveModelWeights(true);
+            }
 
 
             document
@@ -2394,7 +2447,18 @@ async function trainModel() {
 
         finalLossTensor.dispose();
 
+        if (!Number.isFinite(finalLoss)) {
+            throw new Error("The final diagnostic loss is invalid. The training run will be rolled back.");
+        }
+
+        if (!modelWeightsAreFinite()) {
+            throw new Error("The model contains an invalid weight. The training run will be rolled back.");
+        }
+
         await saveModelWeights(true);
+
+        for (const tensor of safeWeightSnapshot) tensor.dispose();
+        safeWeightSnapshot = [];
 
 
         const change =
@@ -2494,6 +2558,26 @@ async function trainModel() {
 
     } catch (error) {
 
+        // Restore the exact weights from before this run; training examples
+        // and the last known-good model remain intact.
+        if (model && safeWeightSnapshot.length) {
+            const variables = model.getTrainableVariables();
+            for (let i = 0; i < variables.length; i++) {
+                variables[i].assign(safeWeightSnapshot[i]);
+                safeWeightSnapshot[i].dispose();
+            }
+            safeWeightSnapshot = [];
+            restoredSafeWeights = true;
+            if (optimizer && typeof optimizer.dispose === "function") optimizer.dispose();
+            optimizer = tf.train.adam(CONFIG.learningRate);
+            hasTrainedWeights = hadSafeTrainedWeights;
+            if (hadSafeTrainedWeights) {
+                await saveModelWeights(true);
+            } else {
+                localStorage.removeItem(MODEL_STORAGE_KEY);
+            }
+        }
+
         console.error(
             error
         );
@@ -2507,9 +2591,14 @@ async function trainModel() {
             '<span class="bad">' +
             "Training failed:\n" +
             error.message +
+            (restoredSafeWeights
+                ? "\nThe previous good model weights were restored. Your examples are still saved."
+                : "\nYour training examples are still saved.") +
             "</span>";
 
     }
+
+    for (const tensor of safeWeightSnapshot) tensor.dispose();
 
 
     button.disabled = false;
