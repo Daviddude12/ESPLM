@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>ESPLM</title>
+<title>Mino AI</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
 
@@ -172,12 +172,12 @@ textarea {
 </head>
 
 <body>
-<div id="buildVersion" aria-label="ESPLM page build 5">ESPLM build 5</div>
+<div id="buildVersion" aria-label="Mino AI page build 7">Mino build 7</div>
 
 <header>
-    <h1>ESPLM</h1>
+    <h1>Mino AI</h1>
     <div class="subtitle">
-        Experimental Small Language Model
+        Your friendly project sidekick
     </div>
 </header>
 
@@ -225,7 +225,7 @@ textarea {
 
     <div class="card">
 
-        <h2>Chat with ESPLM</h2>
+        <h2>Chat with Mino AI</h2>
 
         <textarea
             id="chatInput"
@@ -285,9 +285,13 @@ textarea {
         </div>
 
         <div class="metric">
-            Training examples:
+            Your saved general examples:
             <strong id="exampleCount">0</strong>
         </div>
+
+        <p class="small">
+            Mino has no built-in training examples or pretrained model. He can train only from examples you add here.
+        </p>
 
         <div
             id="modelPersistenceStatus"
@@ -298,7 +302,8 @@ textarea {
         <div class="row">
             <button onclick="saveModelWeights()">Save Model Now</button>
             <button onclick="loadModelWeights()">Load Saved Model</button>
-            <button onclick="clearSavedModel()">Delete Saved Model</button>
+            <button onclick="clearSavedModel()">Reset Model Weights (Keep Examples)</button>
+            <button onclick="resetMinoMemory()">Reset All Your Training Data and Weights</button>
         </div>
 
     </div>
@@ -306,16 +311,15 @@ textarea {
 
     <div class="card">
 
-        <h2>Training Data</h2>
+        <h2>Training Examples</h2>
 
         <p class="small">
-            Add normal text that you want the model to learn from.
-            The model learns byte-by-byte patterns from this text.
+            Add your own conversations showing Mino how to be your buddy, brainstorm ideas, and help with projects.
         </p>
 
         <textarea
             id="trainingText"
-            placeholder="Enter training text here..."></textarea>
+            placeholder="Example format: User: Can you help me plan something?&#10;Mino: Sure. What are you planning?"></textarea>
 
         <div class="row">
 
@@ -324,7 +328,7 @@ textarea {
             </button>
 
             <button onclick="clearTrainingData()">
-                Clear Saved Training Data
+                Clear General Examples and Retrain Fresh
             </button>
 
         </div>
@@ -332,7 +336,7 @@ textarea {
         <div
             id="dataStatus"
             class="status">
-            No training data added yet.
+            No general examples added yet.
         </div>
 
     </div>
@@ -340,12 +344,36 @@ textarea {
 
     <div class="card">
 
+        <h2>Personality Training Only</h2>
+
+        <p class="small">
+            Add your own examples showing the personality you want. This area is stored separately from general examples.
+            Remove these examples and retrain to change personality without deleting your general examples.
+        </p>
+
+        <textarea
+            id="personalityTrainingText"
+            placeholder="Write your own examples of how Mino should sound. Nothing is prefilled."></textarea>
+
+        <div class="row">
+            <button onclick="addPersonalityTraining()">Add Personality Examples</button>
+            <button onclick="clearPersonalityTraining()">Remove Personality Training and Retrain Fresh</button>
+        </div>
+
+        <div
+            id="personalityDataStatus"
+            class="status">
+            No personality examples added.
+        </div>
+
+    </div>
+
+    <div class="card">
+
         <h2>Train Model</h2>
 
         <p class="small">
-            Start with 20 steps. We will check whether the
-            neural network is actually learning before doing
-            longer training runs.
+            Training requires examples you provide in at least one of the two areas above. If both areas are empty, Mino will not train or generate text.
         </p>
 
         <label>
@@ -435,7 +463,7 @@ textarea {
 
     <div class="card">
 
-        <h2>Browser Model Test</h2>
+        <h2>Test Mino</h2>
 
         <p class="small">
             This tests the neural network directly in the browser.
@@ -444,7 +472,7 @@ textarea {
 
         <input
             id="browserPrompt"
-            value="The sky is">
+            placeholder="Enter a prompt that matches the examples you trained Mino on">
 
         <button onclick="browserGenerate()">
             Generate
@@ -532,7 +560,13 @@ let requestCounter = 0;
 
 let savedExamples = [];
 
+let personalityExamples = [];
+
 let lossHistory = [];
+
+const PERSONALITY_STORAGE_KEY = "mino_personality_examples_v1";
+
+let hasTrainedWeights = false;
 
 
 /* =========================================================
@@ -1005,10 +1039,10 @@ class TransformerLayer {
 
 
 /* =========================================================
-   ESPLM MODEL
+   Mino MODEL
    ========================================================= */
 
-class ESPLMModel {
+class MinoModel {
 
     constructor() {
 
@@ -1262,7 +1296,7 @@ async function createModel() {
 
 
     model =
-        new ESPLMModel();
+        new MinoModel();
 
 
     optimizer =
@@ -1288,7 +1322,7 @@ async function createModel() {
             "trainingStatus"
         )
         .textContent =
-        "Model ready.\n" +
+        "Fresh random model ready. Add your own examples and train to save usable weights.\n" +
         count.toLocaleString() +
         " trainable parameters.";
 
@@ -1304,411 +1338,247 @@ async function createModel() {
    MODEL WEIGHT STORAGE
    ========================================================= */
 
-const MODEL_STORAGE_KEY = "esplm_model_weights_v1";
-
+const MODEL_STORAGE_KEY = "mino_model_weights_v2";
 
 function modelArchitectureSignature() {
-
     return JSON.stringify({
-
         vocabSize: CONFIG.vocabSize,
-
         embedDim: CONFIG.embedDim,
-
         numLayers: CONFIG.numLayers,
-
         numHeads: CONFIG.numHeads,
-
         ffnDim: CONFIG.ffnDim,
-
         contextSize: CONFIG.contextSize
-
     });
-
 }
 
+async function saveModelWeights(allowTrainingCheckpoint = false) {
+    if (!model) return false;
 
-async function saveModelWeights() {
-
-    if (!model) {
+    if (!hasTrainedWeights && !allowTrainingCheckpoint) {
+        const status = document.getElementById("modelPersistenceStatus");
+        if (status) status.textContent = "Train Mino using your own examples before saving weights.";
         return false;
     }
 
-
-    const status =
-        document.getElementById(
-            "modelPersistenceStatus"
-        );
-
-
+    const status = document.getElementById("modelPersistenceStatus");
     try {
-
-        const totalBytes =
-            model.parameterCount() * 4;
-
-
-        const bytes =
-            new Uint8Array(
-                totalBytes
-            );
-
-
-        const view =
-            new DataView(
-                bytes.buffer
-            );
-
-
+        const totalBytes = model.parameterCount() * 4;
+        const bytes = new Uint8Array(totalBytes);
+        const view = new DataView(bytes.buffer);
         let offset = 0;
 
-
-        for (
-            const variable of
-            model.getTrainableVariables()
-        ) {
-
-            const values =
-                await variable.data();
-
-
-            for (
-                let i = 0;
-                i < values.length;
-                i++
-            ) {
-
-                view.setFloat32(
-                    offset,
-                    values[i],
-                    true
-                );
-
+        for (const variable of model.getTrainableVariables()) {
+            const values = await variable.data();
+            for (let i = 0; i < values.length; i++) {
+                view.setFloat32(offset, values[i], true);
                 offset += 4;
-
             }
-
         }
-
 
         let binary = "";
-
         const chunkSize = 0x8000;
-
-
-        for (
-            let i = 0;
-            i < bytes.length;
-            i += chunkSize
-        ) {
-
-            const chunk =
-                bytes.subarray(
-                    i,
-                    Math.min(
-                        i + chunkSize,
-                        bytes.length
-                    )
-                );
-
-
-            binary +=
-                String.fromCharCode(
-                    ...chunk
-                );
-
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+            binary += String.fromCharCode(...bytes.subarray(i, Math.min(i + chunkSize, bytes.length)));
         }
 
-
-        const saved = {
-
+        localStorage.setItem(MODEL_STORAGE_KEY, JSON.stringify({
             format: 1,
+            architecture: modelArchitectureSignature(),
+            parameterCount: model.parameterCount(),
+            weights: btoa(binary)
+        }));
 
-            architecture:
-                modelArchitectureSignature(),
-
-            parameterCount:
-                model.parameterCount(),
-
-            weights:
-                btoa(binary)
-
-        };
-
-
-        localStorage.setItem(
-            MODEL_STORAGE_KEY,
-            JSON.stringify(saved)
-        );
-
-
-        if (status) {
-
-            status.textContent =
-                "Model weights saved in this browser.";
-
-        }
-
-
+        hasTrainedWeights = true;
+        if (status) status.textContent = "Model weights saved in this browser.";
         return true;
-
-
     } catch (error) {
-
-        console.error(
-            "Could not save model weights:",
-            error
-        );
-
-
-        if (status) {
-
-            status.textContent =
-                "Could not save model weights: " +
-                error.message;
-
-        }
-
-
+        console.error("Could not save model weights:", error);
+        if (status) status.textContent = "Could not save model weights: " + error.message;
         return false;
-
     }
-
 }
-
 
 async function loadModelWeights() {
+    if (!model) return false;
 
-    if (!model) {
-        return false;
-    }
-
-
-    const status =
-        document.getElementById(
-            "modelPersistenceStatus"
-        );
-
-
+    const status = document.getElementById("modelPersistenceStatus");
     try {
-
-        const raw =
-            localStorage.getItem(
-                MODEL_STORAGE_KEY
-            );
-
-
+        const raw = localStorage.getItem(MODEL_STORAGE_KEY);
         if (!raw) {
-
-            if (status) {
-
-                status.textContent =
-                    "No saved model yet. Train the model, then save it here.";
-
-            }
-
+            hasTrainedWeights = false;
+            if (status) status.textContent = "No saved model yet. Train the model, then save it here.";
             return false;
-
         }
 
-
-        const saved =
-            JSON.parse(
-                raw
-            );
-
-
-        if (
-            saved.format !== 1 ||
-            saved.architecture !==
-                modelArchitectureSignature() ||
-            saved.parameterCount !==
-                model.parameterCount()
-        ) {
-
-            throw new Error(
-                "The saved model does not match this model version."
-            );
-
+        const saved = JSON.parse(raw);
+        if (saved.format !== 1 || saved.architecture !== modelArchitectureSignature() || saved.parameterCount !== model.parameterCount()) {
+            throw new Error("The saved model does not match this model version.");
         }
 
+        const binary = atob(saved.weights);
+        const expectedBytes = model.parameterCount() * 4;
+        if (binary.length !== expectedBytes) throw new Error("The saved model data is incomplete.");
 
-        const binary =
-            atob(
-                saved.weights
-            );
-
-
-        const expectedBytes =
-            model.parameterCount() * 4;
-
-
-        if (
-            binary.length !==
-            expectedBytes
-        ) {
-
-            throw new Error(
-                "The saved model data is incomplete."
-            );
-
-        }
-
-
-        const bytes =
-            new Uint8Array(
-                expectedBytes
-            );
-
-
-        for (
-            let i = 0;
-            i < binary.length;
-            i++
-        ) {
-
-            bytes[i] =
-                binary.charCodeAt(i);
-
-        }
-
-
-        const view =
-            new DataView(
-                bytes.buffer
-            );
-
-
+        const bytes = new Uint8Array(expectedBytes);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        const view = new DataView(bytes.buffer);
         let offset = 0;
 
-
-        for (
-            const variable of
-            model.getTrainableVariables()
-        ) {
-
-            const values =
-                new Float32Array(
-                    variable.size
-                );
-
-
-            for (
-                let i = 0;
-                i < values.length;
-                i++
-            ) {
-
-                values[i] =
-                    view.getFloat32(
-                        offset,
-                        true
-                    );
-
+        for (const variable of model.getTrainableVariables()) {
+            const values = new Float32Array(variable.size);
+            for (let i = 0; i < values.length; i++) {
+                values[i] = view.getFloat32(offset, true);
                 offset += 4;
-
             }
-
-
-            const tensor =
-                tf.tensor(
-                    values,
-                    variable.shape,
-                    "float32"
-                );
-
-
-            variable.assign(
-                tensor
-            );
-
-
+            const tensor = tf.tensor(values, variable.shape, "float32");
+            variable.assign(tensor);
             tensor.dispose();
-
         }
 
-
-        if (status) {
-
-            status.textContent =
-                "Saved model loaded. Training can continue from these weights.";
-
-        }
-
-
+        if (status) status.textContent = "Saved model loaded. Training can continue from these weights.";
+        hasTrainedWeights = true;
         return true;
-
-
     } catch (error) {
-
-        console.error(
-            "Could not load saved model:",
-            error
-        );
-
-
-        if (status) {
-
-            status.textContent =
-                "Could not load saved model: " +
-                error.message;
-
-        }
-
-
+        hasTrainedWeights = false;
+        console.error("Could not load saved model:", error);
+        if (status) status.textContent = "Could not load saved model: " + error.message;
         return false;
-
     }
-
 }
 
-
-function clearSavedModel() {
-
-    try {
-
-        localStorage.removeItem(
-            MODEL_STORAGE_KEY
-        );
-
-
-        const status =
-            document.getElementById(
-                "modelPersistenceStatus"
-            );
-
-
-        if (status) {
-
-            status.textContent =
-                "Saved model deleted. The current in-memory model is unchanged.";
-
-        }
-
-
-    } catch (error) {
-
-        const status =
-            document.getElementById(
-                "modelPersistenceStatus"
-            );
-
-
-        if (status) {
-
-            status.textContent =
-                "Could not delete saved model: " +
-                error.message;
-
-        }
-
+async function clearSavedModel() {
+    if (!confirm("Reset Mino's learned weights? Your general examples and personality examples will stay saved. Train again to rebuild Mino from those examples.")) {
+        return;
     }
 
+    await resetWeightsKeepExamples(
+        "Learned weights cleared. Your examples are still saved; train again to rebuild Mino."
+    );
 }
-
 
 /* =========================================================
    TRAINING DATA STORAGE
    ========================================================= */
+
+function loadPersonalityTraining() {
+    try {
+        const saved = localStorage.getItem(PERSONALITY_STORAGE_KEY);
+        personalityExamples = saved ? JSON.parse(saved) : [];
+        if (!Array.isArray(personalityExamples)) personalityExamples = [];
+    } catch (error) {
+        personalityExamples = [];
+        console.warn("Could not load personality examples:", error);
+    }
+}
+
+
+function savePersonalityTraining() {
+    localStorage.setItem(
+        PERSONALITY_STORAGE_KEY,
+        JSON.stringify(personalityExamples)
+    );
+}
+
+
+function addPersonalityTraining() {
+    const field = document.getElementById("personalityTrainingText");
+    const text = field ? field.value.trim() : "";
+    const status = document.getElementById("personalityDataStatus");
+
+    if (!text) {
+        if (status) status.textContent = "Add your own personality example first.";
+        return;
+    }
+
+    try {
+        personalityExamples.push(text);
+        savePersonalityTraining();
+        updateExampleCount();
+        if (field) field.value = "";
+    } catch (error) {
+        if (status) status.textContent = "Could not save personality example: " + error.message;
+    }
+}
+
+
+async function resetWeightsKeepExamples(message) {
+    const status = document.getElementById("modelPersistenceStatus");
+
+    try {
+        localStorage.removeItem(MODEL_STORAGE_KEY);
+        localStorage.removeItem("esplm_model_weights_v1");
+        localStorage.removeItem("mino_personality_v1");
+        hasTrainedWeights = false;
+        lossHistory = [];
+
+        if (optimizer && typeof optimizer.dispose === "function") {
+            optimizer.dispose();
+        }
+
+        if (model) {
+            model.getTrainableVariables().forEach(variable => variable.dispose());
+        }
+
+        optimizer = null;
+        model = null;
+        await createModel();
+
+        ["startLoss", "currentLoss", "lossChange"].forEach(id => {
+            const element = document.getElementById(id);
+            if (element) element.textContent = "—";
+        });
+
+        drawLossGraph();
+
+        const trainStatus = document.getElementById("trainStatus");
+        if (trainStatus) trainStatus.textContent = message;
+        if (status) status.textContent = message;
+        return true;
+    } catch (error) {
+        console.error("Could not reset Mino's weights:", error);
+        if (status) status.textContent = "Could not reset model weights: " + error.message;
+        return false;
+    }
+}
+
+
+async function clearPersonalityTraining() {
+    if (!confirm("Remove only the personality examples? General examples will stay saved. Mino's learned weights will reset, so you can retrain using the examples you keep.")) {
+        return;
+    }
+
+    personalityExamples = [];
+    localStorage.removeItem(PERSONALITY_STORAGE_KEY);
+    updateExampleCount();
+
+    await resetWeightsKeepExamples(
+        "Personality examples removed. General examples are still saved; train again to rebuild Mino without the old personality examples."
+    );
+}
+
+
+async function resetMinoMemory() {
+    if (!confirm("Reset all of your training data? This removes general examples, personality examples, and learned weights. Nothing is preloaded; you will need to add your own examples again.")) {
+        return;
+    }
+
+    savedExamples = [];
+
+    localStorage.removeItem("esplm_training_examples");
+    personalityExamples = [];
+    localStorage.removeItem(PERSONALITY_STORAGE_KEY);
+    localStorage.removeItem("mino_personality_v1");
+    updateExampleCount();
+
+    const generalField = document.getElementById("trainingText");
+    if (generalField) generalField.value = "";
+    const personalityField = document.getElementById("personalityTrainingText");
+    if (personalityField) personalityField.value = "";
+
+    await resetWeightsKeepExamples(
+        "All user training examples and learned weights were cleared. Add your own examples to train Mino."
+    );
+}
 
 function loadTrainingData() {
 
@@ -1771,7 +1641,15 @@ function updateExampleCount() {
         )
         .textContent =
         savedExamples.length +
-        " saved training example(s).";
+        " general example(s) saved. Nothing is built in.";
+
+    document
+        .getElementById(
+            "personalityDataStatus"
+        )
+        .textContent =
+        personalityExamples.length +
+        " personality example(s) saved.";
 
 }
 
@@ -1820,11 +1698,11 @@ function addTrainingData() {
 }
 
 
-function clearTrainingData() {
+async function clearTrainingData() {
 
     if (
         !confirm(
-            "Clear all saved training data?"
+            "Clear only the general examples? Personality examples will stay saved. Mino's learned weights will reset, so you can retrain from the examples you keep."
         )
     ) {
 
@@ -1835,9 +1713,13 @@ function clearTrainingData() {
 
     savedExamples = [];
 
-    saveTrainingData();
+    localStorage.removeItem("esplm_training_examples");
 
     updateExampleCount();
+
+    await resetWeightsKeepExamples(
+        "General examples removed. Personality examples are still saved; train again to rebuild Mino from them."
+    );
 
 }
 
@@ -1848,22 +1730,19 @@ function clearTrainingData() {
 
 function makeTrainingSequence() {
 
-    if (
-        savedExamples.length === 0
-    ) {
+    const trainingParts = [
+        ...savedExamples,
+        ...personalityExamples
+    ];
 
-        throw new Error(
-            "No training data has been added."
-        );
-
+    if (trainingParts.length === 0) {
+        throw new Error("Add your own general or personality examples before training.");
     }
 
-
     let text =
-        savedExamples.join(
+        trainingParts.join(
             "\n\n"
         );
-
 
     let bytes =
         encodeText(
@@ -2271,21 +2150,21 @@ async function trainModel() {
 
 
     if (
-        savedExamples.length === 0
+        savedExamples.length === 0 &&
+        personalityExamples.length === 0
     ) {
 
         document
-            .getElementById(
-                "trainStatus"
-            )
+            .getElementById("trainStatus")
             .innerHTML =
-            '<span class="bad">' +
-            "Add training data first." +
-            "</span>";
+            '<span class="bad">Add your own general or personality examples before training.</span>';
 
         return;
 
     }
+
+
+
 
 
     const steps =
@@ -2395,14 +2274,7 @@ async function trainModel() {
                 loss
             );
 
-
-            if (
-                step % 20 === 0
-            ) {
-
-                await saveModelWeights();
-
-            }
+            if (step % 20 === 0) await saveModelWeights(true);
 
 
             document
@@ -2475,8 +2347,7 @@ async function trainModel() {
 
         finalLossTensor.dispose();
 
-
-        await saveModelWeights();
+        await saveModelWeights(true);
 
 
         const change =
@@ -2604,6 +2475,32 @@ async function trainModel() {
    ========================================================= */
 
 async function browserGenerate() {
+
+    if (
+        savedExamples.length === 0 &&
+        personalityExamples.length === 0
+    ) {
+
+        document
+            .getElementById("browserOutput")
+            .textContent =
+            "Mino has no user-provided training examples yet. Add your own examples and train him first.";
+
+        return;
+
+    }
+
+
+    if (!hasTrainedWeights) {
+
+        document
+            .getElementById("browserOutput")
+            .textContent =
+            "Mino has not been trained yet. Add your own examples and train him first.";
+
+        return;
+
+    }
 
     if (!model) {
 
@@ -3284,6 +3181,14 @@ function writeFloat32Array(
 
 async function exportModel() {
 
+    if (!hasTrainedWeights) {
+        document
+            .getElementById("exportStatus")
+            .textContent =
+            "Train Mino with your own examples before exporting a model.";
+        return;
+    }
+
     if (!model) {
 
         document
@@ -3525,7 +3430,7 @@ async function exportModel() {
     link.href = url;
 
     link.download =
-        "esplm-model.eslm";
+        "mino-model.eslm";
 
 
     link.click();
@@ -3553,6 +3458,8 @@ async function exportModel() {
 async function startup() {
 
     loadTrainingData();
+
+    loadPersonalityTraining();
 
     updateExampleCount();
 
