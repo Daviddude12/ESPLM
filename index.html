@@ -172,7 +172,7 @@ textarea {
 </head>
 
 <body>
-<div id="buildVersion" aria-label="Mino AI page build 16">Mino build 16</div>
+<div id="buildVersion" aria-label="Mino AI page build 17">Mino build 17</div>
 
 <header>
     <h1>Mino AI</h1>
@@ -290,7 +290,7 @@ textarea {
         </div>
 
         <p class="small">
-            Mino has no built-in training examples or pretrained language model. The buddy style shown in Guardrail Preview is a separate programmed rule; neural replies come from the examples you add here. Build 16 changes the character-prediction layer, so older saved model weights cannot be used; your saved training examples remain available.
+            Mino has no built-in training examples or pretrained language model. The buddy style shown in Guardrail Preview is a separate programmed rule; neural replies come from the examples you add here. Build 16 changed the character-prediction layer, so older saved model weights cannot be used; your saved training examples remain available.
         </p>
 
         <div
@@ -1238,10 +1238,16 @@ class MinoModel {
 
         return tf.tidy(() => {
 
+            const tokenIndicators =
+                tf.oneHot(
+                    inputTensor,
+                    CONFIG.vocabSize
+                );
+
             let x =
-                tf.gather(
-                    this.tokenEmbedding,
-                    inputTensor
+                tf.matMul(
+                    tokenIndicators,
+                    this.tokenEmbedding
                 );
 
 
@@ -1258,10 +1264,16 @@ class MinoModel {
                 );
 
 
+            const positionIndicators =
+                tf.oneHot(
+                    positions,
+                    CONFIG.contextSize
+                );
+
             const positional =
-                tf.gather(
-                    this.positionEmbedding,
-                    positions
+                tf.matMul(
+                    positionIndicators,
+                    this.positionEmbedding
                 );
 
 
@@ -2657,8 +2669,10 @@ async function trainModel() {
             '<span class="bad">' +
             "Training failed:\n" +
             error.message +
-            (restoredSafeWeights
-                ? "\nThe previous good model weights were restored. Your examples are still saved."
+            (restoredSafeWeights && hadSafeTrainedWeights
+                ? "\nYour previously trained weights were restored. Your examples are still saved."
+                : restoredSafeWeights
+                    ? "\nThe fresh pre-run weights were restored. Your examples are still saved."
                 : "\nYour training examples are still saved.") +
             "</span>";
 
