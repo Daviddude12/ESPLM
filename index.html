@@ -172,7 +172,7 @@ textarea {
 </head>
 
 <body>
-<div id="buildVersion" aria-label="ESPLM page build 4">ESPLM build 4</div>
+<div id="buildVersion" aria-label="ESPLM page build 5">ESPLM build 5</div>
 
 <header>
     <h1>ESPLM</h1>
@@ -287,6 +287,18 @@ textarea {
         <div class="metric">
             Training examples:
             <strong id="exampleCount">0</strong>
+        </div>
+
+        <div
+            id="modelPersistenceStatus"
+            class="status">
+            Checking for a saved model...
+        </div>
+
+        <div class="row">
+            <button onclick="saveModelWeights()">Save Model Now</button>
+            <button onclick="loadModelWeights()">Load Saved Model</button>
+            <button onclick="clearSavedModel()">Delete Saved Model</button>
         </div>
 
     </div>
@@ -1283,6 +1295,414 @@ async function createModel() {
 
     updateExampleCount();
 
+    await loadModelWeights();
+
+}
+
+
+/* =========================================================
+   MODEL WEIGHT STORAGE
+   ========================================================= */
+
+const MODEL_STORAGE_KEY = "esplm_model_weights_v1";
+
+
+function modelArchitectureSignature() {
+
+    return JSON.stringify({
+
+        vocabSize: CONFIG.vocabSize,
+
+        embedDim: CONFIG.embedDim,
+
+        numLayers: CONFIG.numLayers,
+
+        numHeads: CONFIG.numHeads,
+
+        ffnDim: CONFIG.ffnDim,
+
+        contextSize: CONFIG.contextSize
+
+    });
+
+}
+
+
+async function saveModelWeights() {
+
+    if (!model) {
+        return false;
+    }
+
+
+    const status =
+        document.getElementById(
+            "modelPersistenceStatus"
+        );
+
+
+    try {
+
+        const totalBytes =
+            model.parameterCount() * 4;
+
+
+        const bytes =
+            new Uint8Array(
+                totalBytes
+            );
+
+
+        const view =
+            new DataView(
+                bytes.buffer
+            );
+
+
+        let offset = 0;
+
+
+        for (
+            const variable of
+            model.getTrainableVariables()
+        ) {
+
+            const values =
+                await variable.data();
+
+
+            for (
+                let i = 0;
+                i < values.length;
+                i++
+            ) {
+
+                view.setFloat32(
+                    offset,
+                    values[i],
+                    true
+                );
+
+                offset += 4;
+
+            }
+
+        }
+
+
+        let binary = "";
+
+        const chunkSize = 0x8000;
+
+
+        for (
+            let i = 0;
+            i < bytes.length;
+            i += chunkSize
+        ) {
+
+            const chunk =
+                bytes.subarray(
+                    i,
+                    Math.min(
+                        i + chunkSize,
+                        bytes.length
+                    )
+                );
+
+
+            binary +=
+                String.fromCharCode(
+                    ...chunk
+                );
+
+        }
+
+
+        const saved = {
+
+            format: 1,
+
+            architecture:
+                modelArchitectureSignature(),
+
+            parameterCount:
+                model.parameterCount(),
+
+            weights:
+                btoa(binary)
+
+        };
+
+
+        localStorage.setItem(
+            MODEL_STORAGE_KEY,
+            JSON.stringify(saved)
+        );
+
+
+        if (status) {
+
+            status.textContent =
+                "Model weights saved in this browser.";
+
+        }
+
+
+        return true;
+
+
+    } catch (error) {
+
+        console.error(
+            "Could not save model weights:",
+            error
+        );
+
+
+        if (status) {
+
+            status.textContent =
+                "Could not save model weights: " +
+                error.message;
+
+        }
+
+
+        return false;
+
+    }
+
+}
+
+
+async function loadModelWeights() {
+
+    if (!model) {
+        return false;
+    }
+
+
+    const status =
+        document.getElementById(
+            "modelPersistenceStatus"
+        );
+
+
+    try {
+
+        const raw =
+            localStorage.getItem(
+                MODEL_STORAGE_KEY
+            );
+
+
+        if (!raw) {
+
+            if (status) {
+
+                status.textContent =
+                    "No saved model yet. Train the model, then save it here.";
+
+            }
+
+            return false;
+
+        }
+
+
+        const saved =
+            JSON.parse(
+                raw
+            );
+
+
+        if (
+            saved.format !== 1 ||
+            saved.architecture !==
+                modelArchitectureSignature() ||
+            saved.parameterCount !==
+                model.parameterCount()
+        ) {
+
+            throw new Error(
+                "The saved model does not match this model version."
+            );
+
+        }
+
+
+        const binary =
+            atob(
+                saved.weights
+            );
+
+
+        const expectedBytes =
+            model.parameterCount() * 4;
+
+
+        if (
+            binary.length !==
+            expectedBytes
+        ) {
+
+            throw new Error(
+                "The saved model data is incomplete."
+            );
+
+        }
+
+
+        const bytes =
+            new Uint8Array(
+                expectedBytes
+            );
+
+
+        for (
+            let i = 0;
+            i < binary.length;
+            i++
+        ) {
+
+            bytes[i] =
+                binary.charCodeAt(i);
+
+        }
+
+
+        const view =
+            new DataView(
+                bytes.buffer
+            );
+
+
+        let offset = 0;
+
+
+        for (
+            const variable of
+            model.getTrainableVariables()
+        ) {
+
+            const values =
+                new Float32Array(
+                    variable.size
+                );
+
+
+            for (
+                let i = 0;
+                i < values.length;
+                i++
+            ) {
+
+                values[i] =
+                    view.getFloat32(
+                        offset,
+                        true
+                    );
+
+                offset += 4;
+
+            }
+
+
+            const tensor =
+                tf.tensor(
+                    values,
+                    variable.shape,
+                    "float32"
+                );
+
+
+            variable.assign(
+                tensor
+            );
+
+
+            tensor.dispose();
+
+        }
+
+
+        if (status) {
+
+            status.textContent =
+                "Saved model loaded. Training can continue from these weights.";
+
+        }
+
+
+        return true;
+
+
+    } catch (error) {
+
+        console.error(
+            "Could not load saved model:",
+            error
+        );
+
+
+        if (status) {
+
+            status.textContent =
+                "Could not load saved model: " +
+                error.message;
+
+        }
+
+
+        return false;
+
+    }
+
+}
+
+
+function clearSavedModel() {
+
+    try {
+
+        localStorage.removeItem(
+            MODEL_STORAGE_KEY
+        );
+
+
+        const status =
+            document.getElementById(
+                "modelPersistenceStatus"
+            );
+
+
+        if (status) {
+
+            status.textContent =
+                "Saved model deleted. The current in-memory model is unchanged.";
+
+        }
+
+
+    } catch (error) {
+
+        const status =
+            document.getElementById(
+                "modelPersistenceStatus"
+            );
+
+
+        if (status) {
+
+            status.textContent =
+                "Could not delete saved model: " +
+                error.message;
+
+        }
+
+    }
+
 }
 
 
@@ -1976,6 +2396,15 @@ async function trainModel() {
             );
 
 
+            if (
+                step % 20 === 0
+            ) {
+
+                await saveModelWeights();
+
+            }
+
+
             document
                 .getElementById(
                     "currentLoss"
@@ -2045,6 +2474,9 @@ async function trainModel() {
 
 
         finalLossTensor.dispose();
+
+
+        await saveModelWeights();
 
 
         const change =
